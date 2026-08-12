@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="breadcrumb" href="{{ url_for('admin_dashboard') }}">{{ L('admin.exempt_back') }}</a>
+
+<div class="page-head flex-between">
+  <div>
+    <h1>{{ L('admin.exempt_title') }} <span class="tag">{{ student['account_code'] }}</span></h1>
+    <p>{{ L('admin.exempt_sub').replace('{{ name }}', admin_name).replace('{{ student }}', student['name']) }}</p>
+  </div>
+  <div class="card" style="padding:12px 18px;">
+    <strong>{{ student['name'] }}</strong>
+    <div class="muted small">{{ student['student_phone'] }} · {{ student['account_code'] }}</div>
+  </div>
+</div>
+
+<div class="alert alert-info">
+  {{ L('admin.exempt_info') }}
+</div>
+
+{% for group in groups %}
+  <div class="card" style="margin-bottom:16px;">
+    <div class="flex-between mb-12" style="gap:10px; flex-wrap:wrap;">
+      <div>
+        <h3 class="mb-0">{{ group['teacher']['name'] }}</h3>
+        {% if group['last_study_label'] %}
+          <div class="muted small">{{ L('admin.exempt_last_study').replace('{{ since }}', group['last_study_label']) }}</div>
+        {% else %}
+          <div class="muted small" style="color:var(--danger, #c0392b);">{{ L('admin.exempt_never_study') }}</div>
+        {% endif %}
+      </div>
+      <span class="tag">{{ L('admin.exempt_count').replace('{{ n }}', group['materials']|length|string) }}</span>
+    </div>
+    {% for m in group['materials'] %}
+      <div class="flex-between" style="padding:10px 0; border-bottom:1px solid var(--border); gap:10px; flex-wrap:wrap;">
+        <div style="min-width:0; flex:1;">
+          <strong>{{ m['title'] }}</strong>
+          <div class="muted small">#{{ m['id'] }} · {{ m['kind'] }}</div>
+          <div class="small" style="margin-top:4px; display:flex; gap:12px; flex-wrap:wrap;">
+            {% if m['purchased_at'] %}
+              <span style="color:#1e8449;">✓ {{ L('admin.exempt_purchased') }} {{ m['purchased_at'][:10] }}</span>
+            {% else %}
+              <span class="muted">{{ L('admin.exempt_not_purchased') }}</span>
+            {% endif %}
+            {% if m['since_label'] %}
+              <span class="muted">{{ L('admin.exempt_last_active').replace('{{ since }}', m['since_label']) }}</span>
+            {% else %}
+              <span style="color:var(--danger, #c0392b);">{{ L('admin.exempt_never_study') }}</span>
+            {% endif %}
+          </div>
+        </div>
+        {% if m['exempt'] %}
+          <form method="post" action="{{ url_for('admin_toggle_student_exemption', student_id=student['id']) }}">
+            <input type="hidden" name="material_id" value="{{ m['id'] }}">
+            <input type="hidden" name="action" value="remove">
+            <button class="btn btn-sm btn-danger" type="submit">{{ L('admin.exempt_remove') }}</button>
+          </form>
+        {% else %}
+          <form method="post" action="{{ url_for('admin_toggle_student_exemption', student_id=student['id']) }}" class="input-row" style="margin:0;">
+            <input type="hidden" name="material_id" value="{{ m['id'] }}">
+            <input type="hidden" name="action" value="add">
+            <input type="text" name="reason" placeholder="{{ L('admin.exempt_reason_ph') }}">
+            <button class="btn btn-sm btn-secondary" type="submit">{{ L('admin.exempt_btn') }}</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card"><div class="empty"><p>{{ L('admin.exempt_empty') }}</p></div></div>
+{% endfor %}
+{% endblock %}

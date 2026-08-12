@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="breadcrumb" href="{{ url_for('student_browse') }}">{{ L('breadcrumb_back') }}</a>
+
+<div class="page-head">
+  <h1>{{ L('account.title') }}</h1>
+  <p>{{ L('account.subtitle') }}</p>
+</div>
+
+<div class="card flex" style="gap:18px; align-items:center;">
+  {% if me and me['photo'] %}
+    <img class="avatar avatar-lg" src="/uploads/{{ me['photo'] }}" alt="{{ L('account.photo_alt').replace('{{ name }}', student_name) }}">
+  {% else %}
+    <span class="avatar avatar-lg">🎓</span>
+  {% endif %}
+  <div style="flex:1;">
+    <h3 class="mb-0">{{ student_name }}</h3>
+    {% if me and me['account_code'] %}<p class="muted small mb-0">{{ L('account.code').replace('{{ code }}', me['account_code']) }}</p>{% endif %}
+  </div>
+  <form method="post" action="{{ url_for('student_update_photo') }}" enctype="multipart/form-data">
+    <div class="field mb-0" style="min-width:220px;">
+      <label style="font-weight:400;">{{ L('account.photo_label') }}</label>
+      <input type="file" name="photo" accept="image/*">
+    </div>
+    <button class="btn btn-secondary btn-sm" type="submit">{% if me and me['photo'] %}{{ L('account.photo_change') }}{% else %}{{ L('account.photo_add') }}{% endif %}</button>
+  </form>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon primary">🧑‍🏫</div>
+    <div class="stat-info"><h3>{{ L('account.stat_subscribed_title') }}</h3><div class="stat-value">{{ teacher_count }}</div><div class="stat-sub">{{ L('account.stat_subscribed_sub') }}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon info">📚</div>
+    <div class="stat-info"><h3>{{ L('account.stat_purchases_title') }}</h3><div class="stat-value">{{ purchases|length }}</div><div class="stat-sub">{{ L('account.stat_purchases_sub') }}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon danger">💸</div>
+    <div class="stat-info"><h3>{{ L('account.stat_spent_title') }}</h3><div class="stat-value">{{ total_spent|int }} <span style="font-size:.8rem;">{{ L('account.egp_short') }}</span></div><div class="stat-sub">{{ L('account.stat_spent_sub') }}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon success">💰</div>
+    <div class="stat-info"><h3>{{ L('account.stat_wallet_title') }}</h3><div class="stat-value">{{ wallet_balance|int }} <span style="font-size:.8rem;">{{ L('account.egp_short') }}</span></div><div class="stat-sub">{{ L('account.stat_wallet_sub') }}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon accent">🎁</div>
+    <div class="stat-info"><h3>{{ L('account.stat_gifts_title') }}</h3><div class="stat-value">{{ gift_credits }}</div><div class="stat-sub">{{ L('account.stat_gifts_sub') }}</div></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="study">{{ L('account.tab_study') }}</button>
+  <button class="tab-btn" data-tab="progress">{{ L('account.tab_progress') }}</button>
+  <button class="tab-btn" data-tab="wallet">{{ L('account.tab_wallet') }}</button>
+  <button class="tab-btn" data-tab="purchases">{{ L('account.tab_purchases') }}</button>
+</div>
+
+<!-- ===== المذاكرة ===== -->
+<div class="tab-panel active" id="tab-study">
+  <div class="card">
+    <div class="flex-between mb-16">
+      <h3 class="mb-0">{{ L('account.study_title') }}</h3>
+      <span class="muted small">{{ L('account.study_sub') }}</span>
+    </div>
+    {% if study_minutes_by_teacher %}
+      <canvas id="studyChart" height="200"></canvas>
+    {% else %}
+      <div class="empty"><span class="empty-icon">⏳</span><p>{{ L('account.study_empty') }}</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ===== التقدم ===== -->
+<div class="tab-panel" id="tab-progress">
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon primary">🔥</div>
+      <div class="stat-info"><h3>{{ L('account.progress_streak') }}</h3><div class="stat-value">{{ streak }} <span style="font-size:.8rem;">{{ L('account.progress_days') }}</span></div><div class="stat-sub">{{ L('account.progress_streak_sub') }}</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon success">✅</div>
+      <div class="stat-info"><h3>{{ L('account.progress_completion') }}</h3><div class="stat-value">%{{ overall_percent }}</div><div class="stat-sub">{{ L('account.progress_completion_sub').replace('{{ done }}', overall_done|string).replace('{{ total }}', overall_total|string) }}</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="flex-between mb-16">
+      <h3 class="mb-0">{{ L('account.progress_monthly') }}</h3>
+      <span class="muted small">{{ L('account.progress_monthly_sub') }}</span>
+    </div>
+    {% if monthly_hours %}
+      <canvas id="monthlyChart" height="200"></canvas>
+    {% else %}
+      <div class="empty"><span class="empty-icon">📊</span><p>{{ L('account.study_empty') }}</p></div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3 class="mb-16">{{ L('account.progress_teachers') }}</h3>
+    {% if progress_by_teacher %}
+      {% for t in progress_by_teacher %}
+        <div style="padding:10px 0; border-bottom:1px solid var(--border);">
+          <div class="flex-between mb-6" style="gap:10px; flex-wrap:wrap;">
+            <strong style="font-size:.92rem;">{{ t['teacher_name'] }}</strong>
+            <span class="muted small">{{ t['completed'] }}/{{ t['purchased'] }} · %{{ t['percent'] }}</span>
+          </div>
+          <div class="progress"><div style="width:{{ t['percent'] }}%;"></div></div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty"><span class="empty-icon">🧑‍🏫</span><p>{{ L('account.progress_teachers_empty') }}</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ===== المحفظة ===== -->
+<div class="tab-panel" id="tab-wallet">
+  <div class="grid-2">
+    <div class="card">
+      <h3>{{ L('account.wallet_topup_title') }}</h3>
+      <p class="muted small">{{ L('account.wallet_topup_desc') }}</p>
+      <form method="post" action="{{ url_for('student_topup') }}" enctype="multipart/form-data">
+        <div class="field">
+          <label>{{ L('account.wallet_method') }}</label>
+          <select name="method" required>
+            <option value="فودافون كاش (يدوي)">📱 فودافون كاش (يدوي)</option>
+            <option value="إنستاباي (يدوي)">🏦 إنستاباي (يدوي)</option>
+            <option value="تحويل بنكي (يدوي)">💼 تحويل بنكي (يدوي)</option>
+            <option value="فيزا">💳 فيزا</option>
+            <option value="فوري">🏧 فوري</option>
+            <option value="محفظة إلكترونية">📲 محفظة إلكترونية</option>
+          </select>
+          <p class="muted small">{{ L('account.wallet_manual_note') }}</p>
+        </div>
+        <div class="field">
+          <label>{{ L('account.wallet_amount') }}</label>
+          <input type="number" name="amount" min="1" step="1" required>
+        </div>
+        <div class="field">
+          <label>{{ L('account.wallet_proof') }}</label>
+          <input type="file" name="proof_photo" accept="image/*">
+        </div>
+        <button class="btn btn-block" type="submit">{{ L('account.wallet_topup_btn') }}</button>
+      </form>
+      {% if instapay_number or vodafone_number or manual_payment_details %}
+        <div class="alert" style="margin-top:14px;">
+          <strong>{{ L('account.wallet_transfer_to') }}</strong>
+          {% if instapay_number %} <div>🏦 إنستاباي: <strong dir="ltr">{{ instapay_number }}</strong></div>{% endif %}
+          {% if vodafone_number %} <div>📱 فودافون كاش: <strong dir="ltr">{{ vodafone_number }}</strong></div>{% endif %}
+          {% if manual_payment_details %} <div class="muted small" style="margin-top:4px;">{{ manual_payment_details }}</div>{% endif %}
+        </div>
+      {% endif %}
+      {% if recharge_whatsapp %}
+        <div class="alert" style="margin-top:10px;">
+          <strong>{{ L('account.wallet_wa_note') }}</strong>
+          <a href="https://wa.me/{{ recharge_whatsapp }}" dir="ltr" style="font-weight:600;">{{ recharge_whatsapp }}</a>
+          <span class="muted small">{{ L('account.wallet_wa_hint') }}</span>
+        </div>
+      {% endif %}
+
+      {% if manual_charges %}
+        <h3 style="margin-top:22px;">{{ L('account.wallet_pending_charges') }}</h3>
+        {% for o in manual_charges %}
+          <div class="flex-between" style="padding:8px 0; border-bottom:1px solid var(--border);">
+            <span style="font-size:.88rem;"><strong>{{ o['amount']|int }} {{ L('account.egp_short') }}</strong> على {{ o['method'] }}</span>
+            <span class="muted small">{{ o['created_at'][:16] }}{{ L('account.wallet_pending_waiting') }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="card" style="margin-top:18px; background:var(--accent-50);">
+        <h3>{{ L('account.wallet_redeem_title') }}</h3>
+        <p class="muted small">{{ L('account.wallet_redeem_desc') }}</p>
+        <form method="post" action="{{ url_for('student_redeem_code') }}">
+          <div class="field mb-0">
+            <input type="text" name="code" placeholder="{{ L('account.wallet_redeem_ph') }}" required dir="ltr" style="font-family:monospace; letter-spacing:1px; text-align:center;">
+          </div>
+          <button class="btn btn-block" type="submit" style="margin-top:10px;">{{ L('account.wallet_redeem_btn') }}</button>
+        </form>
+      </div>
+
+      {% if topups %}
+        <h3 style="margin-top:22px;">{{ L('account.wallet_topup_log') }}</h3>
+        {% for t in topups %}
+          <div class="flex-between" style="padding:8px 0; border-bottom:1px solid var(--border);">
+            <span class="tag tag-success">+{{ t['amount']|int }} {{ L('account.egp_short') }}</span>
+            <span class="muted small">{{ t['method'] }} · {{ t['created_at'][:10] }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h3>{{ L('account.wallet_transfer_title') }}</h3>
+      {% if transfer_error %}
+        <div class="alert alert-error">⚠️ {{ T(transfer_error) }}</div>
+      {% endif %}
+      <form method="post" action="{{ url_for('student_transfer') }}">
+        <div class="field">
+          <label>{{ L('account.wallet_friend_code') }}</label>
+          <input type="text" name="friend_code" placeholder="{{ L('account.wallet_friend_code_ph') }}" required>
+        </div>
+        <div class="field">
+          <label>{{ L('account.wallet_amount') }}</label>
+          <input type="number" name="amount" min="1" step="1" required>
+        </div>
+        <button class="btn btn-secondary btn-block" type="submit">{{ L('account.wallet_transfer_btn') }}</button>
+      </form>
+
+      {% if transfers %}
+        <h3 style="margin-top:22px;">{{ L('account.wallet_transfer_log') }}</h3>
+        {% for t in transfers %}
+          <div class="flex-between" style="padding:8px 0; border-bottom:1px solid var(--border);">
+            <span style="font-size:.88rem;">
+              {% if t['from_student'] == student_name %}
+                {{ L('account.wallet_transfer_out').replace('{{ name }}', t['to_student']) }}
+              {% else %}
+                {{ L('account.wallet_transfer_in').replace('{{ name }}', t['from_student']) }}
+              {% endif %}
+            </span>
+            <span class="muted small">{{ t['amount']|int }} {{ L('account.egp_short') }} · {{ t['created_at'][:10] }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ===== المشتريات ===== -->
+<div class="tab-panel" id="tab-purchases">
+  <div class="card">
+    <h3>{{ L('account.purchases_title') }}</h3>
+    {% for p in purchases %}
+      <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+        <div class="flex-between">
+          <strong>{{ p['material_title'] }}</strong>
+          {% if p['amount'] and p['amount'] > 0 %}<span class="tag tag-accent">{{ p['amount']|int }} {{ L('account.egp_short') }}</span>{% else %}<span class="tag tag-success">{{ L('teacher.free') }}</span>{% endif %}
+        </div>
+        <p class="muted small mb-0">
+          {{ L('account.purchases_meta').replace('{{ teacher }}', p['teacher_name']).replace('{{ date }}', p['purchased_at'][:10]) }}
+          <span class="tag tag-neutral">
+            {% if p['gifted_by'] %}{{ L('account.purchases_gift').replace('{{ name }}', p['gifted_by']) }}{% elif p['center_name'] %}{{ p['center_name'] }}{% else %}{{ p['source_type'] }}{% endif %}
+          </span>
+        </p>
+      </div>
+    {% else %}
+      <div class="empty"><span class="empty-icon">🛒</span><p>{{ L('account.purchases_empty') }}</p></div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'study' && window.studyChart) window.studyChart.resize?.();
+    if (btn.dataset.tab === 'progress' && window.monthlyChart) window.monthlyChart.resize?.();
+  });
+});
+</script>
+
+{% if monthly_hours %}
+<script>
+const monthlyHours = {{ monthly_hours | tojson }};
+new Chart(document.getElementById('monthlyChart'), {
+  type: 'line',
+  data: {
+    labels: monthlyHours.map(m => m.month),
+    datasets: [{
+      label: {{ L('account.progress_hours') | tojson }},
+      data: monthlyHours.map(m => m.hours),
+      borderColor: '#10B981',
+      backgroundColor: 'rgba(16,185,129,.15)',
+      fill: true,
+      tension: .35,
+      pointRadius: 4,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true } }
+  }
+});
+</script>
+{% endif %}
+
+{% if study_minutes_by_teacher %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const studyMinutes = {{ study_minutes_by_teacher | map(attribute='minutes') | list | tojson }};
+new Chart(document.getElementById('studyChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ study_minutes_by_teacher | map(attribute='teacher_name') | list | tojson }},
+    datasets: [{
+      label: {{ L('account.study_chart_label') | tojson }},
+      data: studyMinutes.map(m => Math.round((m / 60) * 10) / 10),
+      backgroundColor: '#7C3AED',
+      borderRadius: 8,
+      maxBarThickness: 56,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true } }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

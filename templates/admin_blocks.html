@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head flex-between">
+  <div>
+    <h1>{{ L('admin.blocks_title') }} <span class="tag">{{ admin_role }}</span></h1>
+    <p>{{ L('admin.blocks_sub') }}</p>
+  </div>
+  <div class="flex" style="gap:8px;">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_dashboard') }}">{{ L('admin.dashboard_btn') }}</a>
+    <form action="{{ url_for('admin_logout') }}" method="post">
+      <button class="btn btn-ghost" type="submit">{{ L('admin.logout_btn').replace('{{ user }}', admin_username) }}</button>
+    </form>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table class="data">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>{{ L('admin.th_teacher') }}</th>
+        <th>{{ L('admin.th_student') }}</th>
+        <th>{{ L('admin.th_code') }}</th>
+        <th>{{ L('admin.blocks_th_reason') }}</th>
+        <th>{{ L('admin.blocks_th_date') }}</th>
+        <th>{{ L('admin.th_action') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in blocks %}
+        <tr>
+          <td>{{ b['id'] }}</td>
+          <td>{{ b['teacher_name'] }}</td>
+          <td>{{ b['student_name'] }}</td>
+          <td dir="ltr">{{ b['student_code'] }}</td>
+          <td style="max-width:240px; white-space:normal;">{{ b['reason'] or L('admin.blocks_no_reason') }}</td>
+          <td class="small">{{ b['created_at'][:16] }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin_remove_block', block_id=b['id']) }}" onsubmit='return confirm({{ L('admin.blocks_confirm').replace('{{ name }}', b['student_name']) | tojson }});'>
+              <button class="btn btn-success btn-sm" type="submit">{{ L('admin.blocks_remove') }}</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7"><div class="empty"><p>{{ L('admin.blocks_empty') }}</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

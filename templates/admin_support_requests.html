@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head flex-between">
+  <div>
+    <h1>{{ L('admin.support_requests_title') }} <span class="tag">{{ admin_role }}</span></h1>
+    <p>{{ L('admin.support_requests_sub') }}</p>
+  </div>
+  <form action="{{ url_for('admin_logout') }}" method="post">
+    <button class="btn btn-ghost" type="submit">{{ L('admin.logout_btn').replace('{{ user }}', admin_username) }}</button>
+  </form>
+</div>
+
+<div class="tabs">
+  <a class="tab-btn {% if status == 'pending' %}active{% endif %}" href="{{ url_for('admin_support_requests', status='pending') }}">{{ L('admin.support_tab_pending').replace('{{ n }}', counts.get('pending', 0)|string) }}</a>
+  <a class="tab-btn {% if status == 'approved' %}active{% endif %}" href="{{ url_for('admin_support_requests', status='approved') }}">{{ L('admin.support_tab_approved').replace('{{ n }}', counts.get('approved', 0)|string) }}</a>
+  <a class="tab-btn {% if status == 'rejected' %}active{% endif %}" href="{{ url_for('admin_support_requests', status='rejected') }}">{{ L('admin.support_tab_rejected').replace('{{ n }}', counts.get('rejected', 0)|string) }}</a>
+  <a class="tab-btn {% if status == 'all' %}active{% endif %}" href="{{ url_for('admin_support_requests', status='all') }}">{{ L('admin.support_tab_all').replace('{{ n }}', rows|length|string) }}</a>
+</div>
+
+<div class="table-wrap">
+  <table class="data">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>{{ L('admin.th_type') }}</th>
+        <th>{{ L('admin.th_student') }}</th>
+        <th>{{ L('admin.th_code') }}</th>
+        <th>{{ L('admin.th_contact') }}</th>
+        <th>{{ L('admin.th_message') }}</th>
+        <th>{{ L('admin.th_date') }}</th>
+        <th>{{ L('admin.th_action') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r['id'] }}</td>
+          <td>
+            {% if r['kind'] == 'orphan' %}
+              <span class="tag">{{ L('admin.support_kind_orphan') }}</span>
+            {% else %}
+              <span class="tag tag-accent">{{ L('admin.support_kind_inability') }}</span>
+            {% endif %}
+          </td>
+          <td>{{ r['student_name'] }}</td>
+          <td dir="ltr">{{ r['student_code'] }}</td>
+          <td dir="ltr">{{ r['contact'] or '—' }}</td>
+          <td style="max-width:260px; white-space:normal;">{{ r['message'] or '—' }}</td>
+          <td class="small">{{ r['created_at'][:16] }}</td>
+          <td>
+            {% if r['status'] == 'pending' %}
+              <div style="display:flex; flex-direction:column; gap:6px; min-width:170px;">
+                <form method="post" action="{{ url_for('admin_update_support_request', req_id=r['id']) }}">
+                  <input type="hidden" name="status" value="approved">
+                  <input type="text" name="admin_note" placeholder="{{ L('admin.support_note_ph') }}" style="width:100%; padding:6px 8px; border:1px solid var(--border); border-radius:8px; font-size:.82rem;">
+                  <button class="btn btn-success btn-sm" type="submit" style="width:100%; margin-top:6px;">{{ L('admin.support_approve') }}</button>
+                </form>
+                <form method="post" action="{{ url_for('admin_update_support_request', req_id=r['id']) }}">
+                  <input type="hidden" name="status" value="rejected">
+                  <input type="text" name="admin_note" placeholder="{{ L('admin.support_reject_reason_ph') }}" style="width:100%; padding:6px 8px; border:1px solid var(--border); border-radius:8px; font-size:.82rem;">
+                  <button class="btn btn-danger btn-sm" type="submit" style="width:100%; margin-top:6px;">{{ L('admin.support_reject') }}</button>
+                </form>
+              </div>
+            {% else %}
+              <span class="muted small">
+                {% if r['status'] == 'approved' %}{{ L('admin.support_approved') }}{% else %}{{ L('admin.support_rejected') }}{% endif %}
+                — {{ r['admin_note'] or L('admin.support_no_note') }}
+              </span>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8"><div class="empty"><p>{{ L('admin.support_empty') }}</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ L('browse.greeting').replace('{{ name }}', student_name) }}</h1>
+  <p>{{ L('browse.subtitle') }}</p>
+</div>
+
+{% if today_target %}
+<a class="card goal-widget" href="{{ url_for('student_goals') }}" style="display:block; margin-bottom:18px; text-decoration:none; color:inherit;">
+  <div class="flex-between" style="gap:12px; align-items:center; flex-wrap:wrap;">
+    <div class="flex" style="gap:12px; align-items:center;">
+      <span style="font-size:1.6rem;">🎯</span>
+      <div>
+        <strong>{{ L('goals.progress_today') }}</strong>
+        <div class="muted small">{{ L('goals.streak').replace('{{ n }}', today_streak|string) }}</div>
+      </div>
+    </div>
+    <div style="flex:1; min-width:120px;">
+      <div class="progress"><div style="width: {{ (today_minutes / today_target * 100) if today_target else 0 }}%;"></div></div>
+    </div>
+    <div class="flex" style="gap:8px; align-items:center;">
+      <span class="tag {{ 'tag-success' if today_minutes >= today_target else 'tag-neutral' }}">{{ today_minutes|int }} / {{ today_target }} {{ L('goals.min') }}</span>
+      <span class="muted small">{{ L('goals.save_btn') }} ←</span>
+    </div>
+  </div>
+</a>
+{% else %}
+<a class="card goal-widget" href="{{ url_for('student_goals') }}" style="display:block; margin-bottom:18px; text-decoration:none; color:inherit;">
+  <div class="flex-between" style="gap:12px; align-items:center; flex-wrap:wrap;">
+    <div class="flex" style="gap:12px; align-items:center;">
+      <span style="font-size:1.6rem;">🎯</span>
+      <div>
+        <strong>{{ L('goals.set_title') }}</strong>
+        <div class="muted small">{{ L('goals.streak').replace('{{ n }}', today_streak|string) }}</div>
+      </div>
+    </div>
+    <span class="btn btn-secondary btn-sm">{{ L('goals.save_btn') }}</span>
+  </div>
+</a>
+{% endif %}
+
+<div class="card" style="margin-bottom: 22px;">
+  <form method="get" class="flex" style="gap:14px; align-items:flex-end; flex-wrap:wrap;">
+    <div class="field mb-0" style="flex:1; min-width:160px;">
+      <label>{{ L('browse.stage') }}</label>
+      <select name="stage_id">
+        <option value="">{{ L('browse.all_stages') }}</option>
+        {% for s in stages %}
+          <option value="{{ s['id'] }}" {% if selected_stage_id == s['id'] %}selected{% endif %}>{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0" style="flex:1; min-width:160px;">
+      <label>{{ L('browse.system') }}</label>
+      <select name="curriculum_id">
+        <option value="">{{ L('browse.all_systems') }}</option>
+        {% for c in curricula %}
+          <option value="{{ c['id'] }}" {% if selected_curriculum_id == c['id'] %}selected{% endif %}>{{ c['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn" type="submit">{{ L('browse.filter') }}</button>
+  </form>
+</div>
+
+{% if teachers %}
+<div class="grid-3">
+  {% for t in teachers %}
+  <div class="teacher-card">
+    <div class="tc-head">
+      <span class="avatar">{{ t['name'][0] if t['name'] else '؟' }}</span>
+      <div>
+        <h3>{{ t['name'] }}</h3>
+        <div class="tc-subjects">
+          {% for subj in (t['subjects_here'] or '').split(',') %}
+            <span class="tag tag-info">{{ subj.strip() }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <p class="tc-bio">{{ t['bio'] }}</p>
+    <div class="tc-cta">
+      <a class="btn btn-block" href="{{ url_for('student_teacher_view', teacher_id=t['id']) }}">{{ L('browse.enter_class') }}</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">
+  <div class="empty">
+    <span class="empty-icon">🔍</span>
+    <p>{{ L('browse.empty') }}</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

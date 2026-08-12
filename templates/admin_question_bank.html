@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head flex-between">
+  <div>
+    <h1>🗂️ {{ L('qb.admin_title') }}</h1>
+    <p>{{ L('qb.admin_subtitle') }}</p>
+  </div>
+  <div class="flex" style="gap:8px;">
+    <a class="btn btn-secondary" href="{{ url_for('admin_exam_bank') }}">📂 {{ L('qb.go_exams') }}</a>
+    <a class="btn btn-ghost" href="{{ url_for('admin_dashboard') }}">{{ L('bank.back_admin') }}</a>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:18px;">
+  <h3 class="mb-16">➕ {{ L('qb.add_title') }}</h3>
+  <form method="post" class="grid-2">
+    <div class="field mb-0" style="grid-column:1 / -1;">
+      <label>{{ L('qb.question_label') }} *</label>
+      <textarea name="question_text" rows="2" required placeholder="{{ L('qb.question_ph') }}"></textarea>
+    </div>
+    <div class="field mb-0">
+      <label>أ.</label>
+      <input type="text" name="option_a" required>
+    </div>
+    <div class="field mb-0">
+      <label>ب.</label>
+      <input type="text" name="option_b" required>
+    </div>
+    <div class="field mb-0">
+      <label>ج.</label>
+      <input type="text" name="option_c" required>
+    </div>
+    <div class="field mb-0">
+      <label>د.</label>
+      <input type="text" name="option_d" required>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.correct_label') }}</label>
+      <select name="correct_index">
+        <option value="0">أ</option>
+        <option value="1">ب</option>
+        <option value="2">ج</option>
+        <option value="3">د</option>
+      </select>
+    </div>
+    <div class="field mb-0" style="grid-column:1 / -1;">
+      <label>{{ L('qb.explanation_label') }}</label>
+      <textarea name="explanation" rows="2" placeholder="{{ L('qb.explanation_ph') }}"></textarea>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.difficulty_label') }}</label>
+      <select name="difficulty">
+        <option value="1">{{ L('qb.diff_easy') }}</option>
+        <option value="2" selected>{{ L('qb.diff_medium') }}</option>
+        <option value="3">{{ L('qb.diff_hard') }}</option>
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.stage_label') }}</label>
+      <select name="stage_id">
+        <option value="">{{ L('bank.all_stages') }}</option>
+        {% for s in stages %}
+          <option value="{{ s['id'] }}">{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.stream_label') }}</label>
+      <select name="stream_id">
+        <option value="">{{ L('bank.all_streams') }}</option>
+        {% for s in streams %}
+          <option value="{{ s['id'] }}">{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.subject_label') }}</label>
+      <select name="subject_id">
+        <option value="">{{ L('bank.subject_any') }}</option>
+        {% for s in subjects %}
+          <option value="{{ s['id'] }}">{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.curriculum_label') }}</label>
+      <select name="curriculum_id">
+        <option value="">{{ L('bank.all_curricula') }}</option>
+        {% for c in curricula %}
+          <option value="{{ c['id'] }}">{{ c['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="grid-column:1 / -1;">
+      <button class="btn btn-primary" type="submit">{{ L('qb.add_btn') }}</button>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="margin-bottom:18px;">
+  <h3 class="mb-16">🔍 {{ L('qb.filter_title') }}</h3>
+  <form method="get" class="grid-4">
+    <div class="field mb-0">
+      <label>{{ L('qb.subject_label') }}</label>
+      <select name="subject_id">
+        <option value="">{{ L('bank.subject_any') }}</option>
+        {% for s in subjects %}
+          <option value="{{ s['id'] }}" {% if q_subject == s['id'] %}selected{% endif %}>{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.stream_label') }}</label>
+      <select name="stream_id">
+        <option value="">{{ L('bank.all_streams') }}</option>
+        {% for s in streams %}
+          <option value="{{ s['id'] }}" {% if q_stream == s['id'] %}selected{% endif %}>{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.stage_label') }}</label>
+      <select name="stage_id">
+        <option value="">{{ L('bank.all_stages') }}</option>
+        {% for s in stages %}
+          <option value="{{ s['id'] }}" {% if q_stage == s['id'] %}selected{% endif %}>{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.curriculum_label') }}</label>
+      <select name="curriculum_id">
+        <option value="">{{ L('bank.all_curricula') }}</option>
+        {% for c in curricula %}
+          <option value="{{ c['id'] }}" {% if q_curriculum == c['id'] %}selected{% endif %}>{{ c['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.filter_difficulty') }}</label>
+      <select name="difficulty">
+        <option value="">{{ L('qb.diff_easy') }} + {{ L('qb.diff_medium') }} + {{ L('qb.diff_hard') }}</option>
+        <option value="1" {% if q_difficulty == 1 %}selected{% endif %}>{{ L('qb.diff_easy') }}</option>
+        <option value="2" {% if q_difficulty == 2 %}selected{% endif %}>{{ L('qb.diff_medium') }}</option>
+        <option value="3" {% if q_difficulty == 3 %}selected{% endif %}>{{ L('qb.diff_hard') }}</option>
+      </select>
+    </div>
+    <div style="grid-column:1 / -1;">
+      <button class="btn" type="submit">{{ L('browse.filter') }}</button>
+    </div>
+  </form>
+</div>
+
+<h3 class="mb-12">{{ L('qb.list_title') }} ({{ questions|length }})</h3>
+<div class="card">
+  {% if questions %}
+    {% for q in questions %}
+      {% set letters = ['أ', 'ب', 'ج', 'د'] %}
+      <div class="flex-between" style="padding:12px 0; border-bottom:1px solid var(--border); gap:10px; flex-wrap:wrap;">
+        <div style="min-width:0; flex:1;">
+          <div class="flex" style="gap:8px; flex-wrap:wrap;">
+            <strong>{{ q['question_text'] }}</strong>
+            {% if q['difficulty'] == 3 %}<span class="tag tag-danger">{{ L('qb.diff_hard') }}</span>
+            {% elif q['difficulty'] == 1 %}<span class="tag tag-success">{{ L('qb.diff_easy') }}</span>
+            {% else %}<span class="tag tag-warning">{{ L('qb.diff_medium') }}</span>{% endif %}
+            {% if not q['is_published'] %}<span class="tag tag-neutral">{{ L('bank.hidden') }}</span>{% endif %}
+          </div>
+          <div class="muted small mb-4">
+            {% for i in [0,1,2,3] %}
+              <span class="option-item {% if i == q['correct_index'] %}option-correct{% endif %}">
+                {{ letters[i] }}. {{ q['option_a'] if i == 0 else (q['option_b'] if i == 1 else (q['option_c'] if i == 2 else q['option_d'])) }}
+              </span>
+            {% endfor %}
+          </div>
+          <div class="muted small">
+            {{ q['stage_name'] or L('bank.all_stages') }}
+            {% if q['stream_name'] %} · 🎯 {{ q['stream_name'] }}{% endif %}
+            {% if q['subject_name'] %} · {{ q['subject_name'] }}{% endif %}
+            {% if q['curriculum_name'] %} · {{ q['curriculum_name'] }}{% endif %}
+          </div>
+          {% if q['explanation'] %}<div class="muted small">💡 {{ q['explanation'] }}</div>{% endif %}
+        </div>
+        <div class="flex" style="gap:6px;">
+          <form method="post" action="{{ url_for('admin_question_bank_toggle', qid=q['id']) }}">
+            <button class="btn btn-secondary btn-sm" type="submit">{{ L('bank.show_hide') }}</button>
+          </form>
+          <form method="post" action="{{ url_for('admin_question_bank_delete', qid=q['id']) }}" onsubmit="return confirm('{{ L('qb.delete_confirm') }}');">
+            <button class="btn btn-danger btn-sm" type="submit">{{ L('bank.delete') }}</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty"><span class="empty-icon">🗂️</span><p>{{ L('qb.empty') }}</p></div>
+  {% endif %}
+</div>
+
+<style>
+  .option-item { display:inline-block; background:var(--card-alt,#f4f5fa); border-radius:6px; padding:2px 8px; margin:2px 4px 2px 0; }
+  .option-correct { background:rgba(21,128,61,.12); color:var(--success,#15803d); font-weight:700; }
+</style>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="breadcrumb" href="{{ url_for('student_browse') }}">{{ L('breadcrumb_back') }}</a>
+
+<div class="page-head">
+  <h1>{{ L('exams.title') }}</h1>
+  <p>{{ L('exams.subtitle') }}</p>
+</div>
+
+{% if e_assessments %}
+<div class="card card-soft" style="margin-bottom:18px;">
+  <h3 style="margin-top:0;">{{ L('exams.electronic') }}</h3>
+  {% for a in e_assessments %}
+  <div class="flex-between" style="padding:10px 0; border-bottom:1px solid var(--border); gap:8px; flex-wrap:wrap;">
+    <div style="min-width:0;">
+      <strong>{{ a['title'] }}</strong>
+      <div class="muted small">{{ L('meta.lesson') }} {{ a['lesson_title'] }} · {{ L('meta.teacher_prefix') }} {{ a['teacher_name'] }} · {{ a['question_count'] }} {{ L('meta.questions_count') }}</div>
+    </div>
+    {% if a['my_score'] is not none %}
+      <div class="flex" style="gap:6px;">
+        <span class="tag tag-success">{{ L('exams.last_score') }} {{ a['my_score']|round(1) }}%</span>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('student_assessment_result', assessment_id=a['id']) }}">{{ L('exams.result') }}</a>
+      </div>
+    {% else %}
+      <a class="btn btn-sm" href="{{ url_for('student_assessment', assessment_id=a['id']) }}">{{ L('exams.start') }}</a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if exams %}
+<div class="grid-2">
+  {% for e in exams %}
+  <div class="card">
+    <div class="flex-between mb-16">
+      <h3 class="mb-0">{{ e['title'] }}</h3>
+      <span class="tag">{{ e['teacher_name'] }}</span>
+    </div>
+    <p class="lc-content" style="font-size:.88rem;">{{ e['content'] }}</p>
+    <hr class="divider">
+    <div class="flex-between">
+      {% if e['graded_at'] %}
+        <span class="tag tag-success">{{ L('exams.graded') }} {{ e['grade'] }}</span>
+      {% elif e['submitted_at'] %}
+        <span class="tag tag-accent">{{ L('exams.submitted') }}</span>
+      {% else %}
+        <span class="tag tag-neutral">{{ L('exams.not_started') }}</span>
+      {% endif %}
+      <a class="btn btn-sm btn-secondary" href="{{ url_for('student_teacher_view', teacher_id=e['teacher_id']) }}">{{ L('exams.open') }}</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="empty"><span class="empty-icon">📝</span><p>{{ L('exams.empty') }}</p></div></div>
+{% endif %}
+{% endblock %}

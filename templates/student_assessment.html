@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+{% set OPT_LETTERS = L('assessment.option_letters') %}
+<a class="breadcrumb" href="{{ url_for('student_lesson', material_id=material['id']) }}">{{ L('assessment.back_lesson') }}</a>
+
+<div class="page-head">
+  <h1>{% if assessment['kind'] == 'امتحان' %}📝{% else %}📔{% endif %} {{ assessment['title'] }}</h1>
+  <p>{{ material['title'] }} · {{ L('meta.teacher_prefix') }} {{ teacher['name'] }} · {{ questions|length }} {{ L('meta.questions_count') }} — {{ L('assessment.instant') }}</p>
+</div>
+
+{% if latest %}
+<div class="alert alert-info">{{ L('assessment.latest').replace('{{ score }}', latest['score']|round(1)|string) }}</div>
+{% endif %}
+
+{% if questions %}
+<form method="post" action="{{ url_for('student_assessment_submit', assessment_id=assessment['id']) }}">
+  {% for q in questions %}
+  <div class="card" style="margin-bottom:14px;">
+    <p class="mb-0" style="font-weight:bold;">{{ loop.index }}. {{ q['question_text'] }}</p>
+    <div style="margin-top:10px; display:grid; gap:8px;">
+      {% for letter, opt in [('أ', q['option_a']), ('ب', q['option_b']), ('ج', q['option_c']), ('د', q['option_d'])] %}
+        {% if opt %}
+        <label style="display:flex; gap:10px; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer;">
+          <input type="radio" name="q_{{ q['id'] }}" value="{{ loop.index0 }}">
+          <span>{{ OPT_LETTERS[letter] }}. {{ opt }}</span>
+        </label>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+  <button class="btn btn-lg btn-block" type="submit">{{ L('assessment.submit') }}</button>
+</form>
+{% else %}
+<div class="card"><div class="empty"><span class="empty-icon">📝</span><p>{{ L('assessment.empty') }}</p></div></div>
+{% endif %}
+{% endblock %}

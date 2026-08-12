@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.env
+venv/
+env/
+.secret_key
+backups/
+uploads/
+cloudflared.exe
+*.log
+public_url.txt
+static/uploads/*
+!static/uploads/.gitkeep
+*.sqlite3
+.DS_Store

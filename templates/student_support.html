@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="breadcrumb" href="{{ url_for('student_account') }}">{{ L('support.back') }}</a>
+
+<div class="page-head">
+  <h1>{{ T(info['title']) }}</h1>
+  <p>{{ T(info['sub']) }}</p>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2 style="margin-bottom:10px;">{{ T(info['heading']) }}</h2>
+    <ul style="padding-inline-start:20px; margin:0; color:var(--text-soft); font-size:.92rem; line-height:2;">
+      {% for d in info['details'] %}
+        <li>{{ T(d) }}</li>
+      {% endfor %}
+    </ul>
+
+    <hr class="divider">
+
+    <h3 class="mb-12">{% if kind != 'inability' %}📝 {% endif %}{{ L('support.submit_request') }}</h3>
+    <form method="post" action="{{ url_for('student_support_submit') }}">
+      <input type="hidden" name="kind" value="{{ kind }}">
+      <div class="field">
+        <label>{{ L('support.your_message') }}</label>
+        <textarea name="message" rows="4" placeholder="{{ T(info['placeholder']) }}" maxlength="500" required></textarea>
+        <p class="hint">{{ L('support.char_limit') }}</p>
+      </div>
+      <div class="field">
+        <label>{{ L('support.phone') }}</label>
+        <input type="text" name="contact" placeholder="{{ L('support.phone_ph') }}" maxlength="100" dir="ltr" value="{{ me['student_phone'] or me['parent_phone'] or '' }}">
+      </div>
+      <button class="btn btn-lg btn-block" type="submit">{% if kind != 'inability' %}🚀 {% endif %}{{ L('support.send_request') }}</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>{% if kind != 'inability' %}📋 {% endif %}{{ L('support.prev_requests') }}</h3>
+    {% for r in my_requests %}
+      <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+        <div class="flex-between">
+          <span class="tag
+            {% if r['status'] == 'approved' %}tag-success{% elif r['status'] == 'rejected' %}tag-danger{% else %}tag-accent{% endif %}">
+            {% if r['status'] == 'approved' %}{% if kind != 'inability' %}✅ {% endif %}{{ L('support.status_approved') }}{% elif r['status'] == 'rejected' %}{% if kind != 'inability' %}❌ {% endif %}{{ L('support.status_rejected') }}{% else %}{% if kind != 'inability' %}⏳ {% endif %}{{ L('support.status_pending') }}{% endif %}
+          </span>
+          <span class="muted small">{{ r['created_at'][:16] }}</span>
+        </div>
+        {% if r['message'] %}<p class="small mb-0 mt-8" style="color:var(--text-soft);">{{ r['message'] }}</p>{% endif %}
+        {% if r['admin_note'] %}<p class="small mb-0 mt-8" style="color:var(--success);">{{ L('support.admin_reply') }} {{ r['admin_note'] }}</p>{% endif %}
+      </div>
+    {% else %}
+      <div class="empty">
+        <p>{% if kind != 'inability' %}📭 {% endif %}{{ L('support.empty') }}</p>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

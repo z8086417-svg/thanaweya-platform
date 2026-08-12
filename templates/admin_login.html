@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="auth-shell">
+  <div class="auth-card">
+    <div class="auth-icon">🛡️</div>
+    <h1>{{ L('admin_login.title') }}</h1>
+    <p class="auth-sub">{{ L('admin_login.subtitle') }}</p>
+
+    {% if error %}
+      <div class="alert alert-error">⚠️ {{ T(error) }}</div>
+    {% endif %}
+
+    <form method="post">
+      <div class="field">
+        <label>{{ L('admin_login.username') }}</label>
+        <input type="text" name="username" required autofocus>
+      </div>
+      <div class="field">
+        <label>{{ L('admin_login.password') }}</label>
+        <input type="password" name="password" required>
+      </div>
+      <button class="btn btn-lg btn-block" type="submit">{{ L('action.login') }}</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

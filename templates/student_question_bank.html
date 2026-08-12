@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head flex-between">
+  <div>
+    <h1>🗂️ {{ L('qb.student_title') }}</h1>
+    <p>{{ L('qb.student_subtitle') }}</p>
+  </div>
+  <div class="flex" style="gap:8px;">
+    <a class="btn btn-ghost" href="{{ url_for('student_exam_bank') }}">📂 {{ L('qb.go_exams') }}</a>
+  </div>
+</div>
+
+{% if today_set %}
+  {% if today_set['status'] == 'active' %}
+    <div class="card daily-card" style="margin-bottom:18px; border:2px solid var(--primary,#4C1D95);">
+      <div class="flex-between" style="gap:12px; flex-wrap:wrap; align-items:center;">
+        <div>
+          <h3 class="mb-4">🎯 {{ L('qb.daily_title') }}</h3>
+          <p class="muted small mb-0">{{ L('qb.daily_desc') }}</p>
+        </div>
+        <a class="btn btn-primary" href="{{ url_for('student_question_bank_set', set_id=today_set['id']) }}">
+          ▶️ {{ L('qb.start_continue') }}
+        </a>
+      </div>
+    </div>
+  {% elif today_set['status'] == 'submitted' %}
+    <div class="card daily-card" style="margin-bottom:18px; border:2px solid var(--success,#15803d);">
+      <div class="flex-between" style="gap:12px; flex-wrap:wrap; align-items:center;">
+        <div>
+          <h3 class="mb-4">✅ {{ L('qb.daily_done') }}</h3>
+          <p class="muted small mb-0">
+            {{ L('qb.daily_score').replace('{{ score }}', today_set['score']|string).replace('{{ total }}', today_set['total']|string) }}
+          </p>
+        </div>
+        <a class="btn btn-secondary" href="{{ url_for('student_question_bank_result', set_id=today_set['id']) }}">
+          📋 {{ L('qb.view_result') }}
+        </a>
+      </div>
+    </div>
+  {% endif %}
+{% else %}
+  <div class="card daily-card" style="margin-bottom:18px; border:2px solid var(--primary,#4C1D95);">
+    <div class="flex-between" style="gap:12px; flex-wrap:wrap; align-items:center;">
+      <div>
+        <h3 class="mb-4">🎯 {{ L('qb.daily_title') }}</h3>
+        <p class="muted small mb-0">{{ L('qb.daily_desc') }}</p>
+      </div>
+      <form method="post" action="{{ url_for('student_question_bank_start') }}">
+        <button class="btn btn-primary" type="submit">▶️ {{ L('qb.start_daily') }}</button>
+      </form>
+    </div>
+  </div>
+{% endif %}
+
+{% if prev_sets %}
+<div class="card" style="margin-bottom:18px;">
+  <h3 class="mb-12">📅 {{ L('qb.prev_sets') }}</h3>
+  <div class="flex" style="gap:8px; flex-wrap:wrap;">
+    {% for p in prev_sets %}
+      {% if p['status'] == 'submitted' %}
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('student_question_bank_result', set_id=p['id']) }}">
+          {{ p['set_date'] }} · {{ p['score'] }}/{{ p['total'] }}
+        </a>
+      {% else %}
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('student_question_bank_set', set_id=p['id']) }}">
+          {{ p['set_date'] }} · {{ L('qb.in_progress') }}
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card" style="margin-bottom:18px;">
+  <h3 class="mb-16">🔍 {{ L('qb.filter_title') }}</h3>
+  <form method="get" class="grid-4">
+    <div class="field mb-0">
+      <label>{{ L('qb.subject_label') }}</label>
+      <select name="subject_id">
+        <option value="">{{ L('bank.subject_any') }}</option>
+        {% for s in subjects %}
+          <option value="{{ s['id'] }}" {% if q_subject == s['id'] %}selected{% endif %}>{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.stream_label') }}</label>
+      <select name="stream_id">
+        <option value="">{{ L('bank.all_streams') }}</option>
+        {% for s in streams %}
+          <option value="{{ s['id'] }}" {% if q_stream == s['id'] %}selected{% endif %}>{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.stage_label') }}</label>
+      <select name="stage_id">
+        <option value="">{{ L('bank.all_stages') }}</option>
+        {% for s in stages %}
+          <option value="{{ s['id'] }}" {% if q_stage == s['id'] %}selected{% endif %}>{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('qb.curriculum_label') }}</label>
+      <select name="curriculum_id">
+        <option value="">{{ L('bank.all_curricula') }}</option>
+        {% for c in curricula %}
+          <option value="{{ c['id'] }}" {% if q_curriculum == c['id'] %}selected{% endif %}>{{ c['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="grid-column:1 / -1;">
+      <button class="btn" type="submit">{{ L('browse.filter') }}</button>
+    </div>
+  </form>
+</div>
+
+<h3 class="mb-12">{{ L('qb.list_title') }} ({{ questions|length }})</h3>
+<div class="grid-2">
+  {% if questions %}
+    {% for q in questions %}
+      {% set letters = ['أ', 'ب', 'ج', 'د'] %}
+      <div class="card" style="margin-bottom:12px;">
+        <div class="flex" style="gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+          {% if q['subject_name'] %}<span class="tag tag-info">{{ q['subject_name'] }}</span>{% endif %}
+          {% if q['stream_name'] %}<span class="tag tag-accent">{{ q['stream_name'] }}</span>{% endif %}
+          {% if q['stage_name'] %}<span class="tag tag-neutral">{{ q['stage_name'] }}</span>{% endif %}
+          {% if q['curriculum_name'] %}<span class="tag tag-neutral">{{ q['curriculum_name'] }}</span>{% endif %}
+        </div>
+        <p class="mb-8"><strong>{{ q['question_text'] }}</strong></p>
+        <div class="muted small">
+          {% for i in [0,1,2,3] %}
+            <div>{{ letters[i] }}. {{ q['option_a'] if i == 0 else (q['option_b'] if i == 1 else (q['option_c'] if i == 2 else q['option_d'])) }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="card" style="grid-column:1 / -1;">
+      <div class="empty"><span class="empty-icon">🗂️</span><p>{{ L('qb.empty') }}</p></div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

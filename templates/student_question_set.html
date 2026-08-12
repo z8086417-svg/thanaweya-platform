@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head flex-between">
+  <div>
+    <h1>🎯 {{ L('qb.set_title') }} — {{ daily_set['set_date'] }}</h1>
+    <p>{{ L('qb.set_subtitle') }}</p>
+  </div>
+  <div class="flex" style="gap:8px;">
+    <a class="btn btn-ghost" href="{{ url_for('student_question_bank') }}">{{ L('qb.back_bank') }}</a>
+  </div>
+</div>
+
+<form method="post" action="{{ url_for('student_question_bank_submit', set_id=daily_set['id']) }}">
+  {% for q in questions %}
+    {% set letters = ['أ', 'ب', 'ج', 'د'] %}
+    <div class="card question-card" style="margin-bottom:14px;">
+      <div class="flex" style="gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+        <span class="tag tag-info">{{ q['subject_name'] or L('bank.subject_any') }}</span>
+        {% if q['stage_name'] %}<span class="tag tag-neutral">{{ q['stage_name'] }}</span>{% endif %}
+        <span class="muted small">#{{ loop.index }}</span>
+      </div>
+      <p class="mb-10"><strong>{{ q['question_text'] }}</strong></p>
+      <div class="options-grid">
+        {% for i in [0,1,2,3] %}
+          {% set opt = q['option_a'] if i == 0 else (q['option_b'] if i == 1 else (q['option_c'] if i == 2 else q['option_d'])) %}
+          {% if opt %}
+          <label class="option-card">
+            <input type="radio" name="answer_{{ q['dsq_id'] }}" value="{{ i }}">
+            <span class="option-label">{{ letters[i] }}.</span>
+            <span>{{ opt }}</span>
+          </label>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+
+  <div class="card submit-card">
+    <div class="flex-between" style="gap:12px; flex-wrap:wrap; align-items:center;">
+      <p class="muted small mb-0">{{ L('qb.submit_hint') }}</p>
+      <button class="btn btn-primary" type="submit">✅ {{ L('qb.submit') }}</button>
+    </div>
+  </div>
+</form>
+
+<style>
+  .options-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .option-card {
+    display:flex; align-items:center; gap:8px; border:1px solid var(--border,#e3e6ee);
+    border-radius:10px; padding:10px 12px; cursor:pointer; transition:border-color .15s;
+  }
+  .option-card:hover { border-color: var(--primary,#4C1D95); }
+  .option-card:has(input:checked) { border-color: var(--primary,#4C1D95); background: rgba(76,29,149,.06); }
+  .option-label { font-weight:800; color: var(--primary,#4C1D95); }
+  @media (max-width:640px){ .options-grid { grid-template-columns:1fr; } }
+</style>
+{% endblock %}

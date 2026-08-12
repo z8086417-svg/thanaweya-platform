@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+{% set OPT_LETTERS = L('assessment.option_letters') %}
+<a class="breadcrumb" href="{{ url_for('student_lesson', material_id=material['id']) }}">{{ L('assessment.back_lesson') }}</a>
+
+<div class="page-head">
+  <h1>{{ L('assessment.result_title').replace('{{ title }}', assessment['title']) }}</h1>
+  <p>{% if assessment['kind'] == 'امتحان' %}{{ L('kind.exam') }}{% else %}{{ L('kind.homework') }}{% endif %} · {{ material['title'] }}</p>
+</div>
+
+<div class="card" style="text-align:center; padding:28px 16px; margin-bottom:18px;
+  background: {{ 'var(--success-100)' if attempt['score'] >= 50 else 'var(--danger-100)' }};">
+  <p class="muted mb-0">{{ L('assessment.your_percent') }}</p>
+  <h1 style="font-size:2.6rem; margin:6px 0;">{{ attempt['score']|round(1) }}%</h1>
+  <p class="mb-0">{{ L('assessment.correct_of').replace('{{ correct }}', attempt['correct_count']|string).replace('{{ total }}', attempt['total_count']|string) }}</p>
+  <p class="muted small mb-0">{{ L('assessment.submitted_at').replace('{{ at }}', attempt['submitted_at'][:16]) }}</p>
+</div>
+
+{% for item in per_question %}
+{% set q = item['question'] %}
+<div class="card" style="margin-bottom:14px; border-right:6px solid {{ 'var(--success)' if item['correct'] else 'var(--danger)' }};">
+  <div class="flex-between mb-8" style="gap:8px;">
+    <p class="mb-0" style="font-weight:bold;">{{ loop.index }}. {{ q['question_text'] }}</p>
+    <span class="tag {{ 'tag-success' if item['correct'] else 'tag-danger' }}">{% if item['correct'] %}{{ L('assessment.correct') }}{% else %}{{ L('assessment.wrong') }}{% endif %}</span>
+  </div>
+  {% for letter, opt, idx in [('أ', q['option_a'], 0), ('ب', q['option_b'], 1), ('ج', q['option_c'], 2), ('د', q['option_d'], 3)] %}
+    {% if opt %}
+      <div class="small" style="padding:4px 0;
+        {% if idx == q['correct_index'] %}color:var(--success); font-weight:bold;
+        {% elif item['chosen'] == idx %}color:var(--danger); font-weight:bold;
+        {% else %}color:var(--muted);{% endif %}">
+        {{ OPT_LETTERS[letter] }}. {{ opt }}
+        {% if idx == q['correct_index'] %} {{ L('assessment.correct_answer') }}{% endif %}
+        {% if item['chosen'] == idx %} {{ L('assessment.your_answer') }}{% endif %}
+      </div>
+    {% endif %}
+  {% endfor %}
+  {% if item['chosen'] is none %}
+    <div class="small" style="color:var(--danger); font-weight:bold; margin-top:4px;">{{ L('assessment.no_answer') }}</div>
+  {% endif %}
+
+  {% if item['show_video'] %}
+    <div style="margin-top:14px; padding-top:12px; border-top:1px dashed var(--border);">
+      <p class="mb-0 small" style="font-weight:bold;">{{ L('assessment.explain_video_title') }}</p>
+      {% if q['explain_video'] %}
+        <video controls preload="metadata" style="width:100%; max-width:520px; border-radius:12px; background:#000; margin-top:8px;"
+               src="/uploads/videos/{{ q['explain_video'] }}"></video>
+      {% elif q['explain_url'] %}
+        <a class="btn btn-secondary btn-sm" style="margin-top:8px;" href="{{ q['explain_url'] }}" target="_blank" rel="noopener">{{ L('assessment.watch_explain') }}</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+<div class="flex" style="gap:8px; flex-wrap:wrap;">
+  <a class="btn btn-secondary" href="{{ url_for('student_assessment', assessment_id=assessment['id']) }}">{{ L('assessment.retry') }}</a>
+  <a class="btn" href="{{ url_for('student_lesson', material_id=material['id']) }}">{{ L('assessment.go_lesson') }}</a>
+</div>
+{% endblock %}

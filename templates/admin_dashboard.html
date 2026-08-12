@@ -1,0 +1,986 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head flex-between">
+  <div>
+    <h1>{{ L('nav.admin_dashboard') }} <span class="tag">{{ admin_role }}</span></h1>
+    <p>{{ L('adash.welcome').replace('{{ name }}', admin_username) }}</p>
+  </div>
+  <div class="flex" style="gap:8px;">
+    <a class="btn btn-secondary" href="{{ url_for('admin_question_bank') }}">🗂️ {{ L('qb.admin_title') }}</a>
+    <a class="btn btn-secondary" href="{{ url_for('admin_exam_bank') }}">📂 {{ L('nav.exam_bank') }}</a>
+    <form action="{{ url_for('admin_logout') }}" method="post">
+      <button class="btn btn-ghost" type="submit">{{ L('admin.logout_btn').replace('{{ user }}', admin_username) }}</button>
+    </form>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon primary">🧑‍🏫</div>
+    <div class="stat-info"><h3>{{ L('adash.stat_teachers') }}</h3><div class="stat-value">{{ teacher_count }}</div><div class="stat-sub">{{ L('adash.stat_teachers_sub') }}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon info">📚</div>
+    <div class="stat-info"><h3>{{ L('adash.stat_lessons') }}</h3><div class="stat-value">{{ lesson_count }}</div><div class="stat-sub">{{ L('adash.stat_lessons_sub') }}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon success">🎓</div>
+    <div class="stat-info"><h3>{{ L('adash.stat_active_students') }}</h3><div class="stat-value">{{ active_students }}</div><div class="stat-sub">{{ L('adash.stat_active_students_sub') }}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon accent">💰</div>
+    <div class="stat-info"><h3>{{ L('adash.stat_revenue') }}</h3><div class="stat-value">{{ total_revenue|int }} <span style="font-size:.8rem;">{{ L('teacher.egp') }}</span></div><div class="stat-sub">{{ L('adash.stat_revenue_sub') }}</div></div>
+  </div>
+  <a class="stat-card" href="{{ url_for('admin_support_requests') }}" style="text-decoration:none; color:var(--text);">
+    <div class="stat-icon info">📥</div>
+    <div class="stat-info">
+      <h3>{{ L('adash.stat_support') }}</h3>
+      <div class="stat-value">{{ support_pending_count }}</div>
+      <div class="stat-sub">{{ L('adash.stat_support_sub') }}</div>
+    </div>
+  </a>
+  <a class="stat-card" href="{{ url_for('admin_contracts') }}" style="text-decoration:none; color:var(--text);">
+    <div class="stat-icon primary">📋</div>
+    <div class="stat-info">
+      <h3>{{ L('adash.stat_contracts') }}</h3>
+      <div class="stat-value">{{ contract_count }}</div>
+      <div class="stat-sub">{{ L('adash.stat_contracts_sub') }}</div>
+    </div>
+  </a>
+  <a class="stat-card" href="{{ url_for('admin_blocks') }}" style="text-decoration:none; color:var(--text);">
+    <div class="stat-icon danger">🚫</div>
+    <div class="stat-info">
+      <h3>{{ L('adash.stat_blocks') }}</h3>
+      <div class="stat-value">{{ block_count }}</div>
+      <div class="stat-sub">{{ L('adash.stat_blocks_sub') }}</div>
+    </div>
+  </a>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="announce">{{ L('adash.tab_announce') }}</button>
+  <button class="tab-btn" data-tab="search">{{ L('adash.tab_search') }}</button>
+  <button class="tab-btn" data-tab="accounts">{{ L('adash.tab_accounts') }}</button>
+  <button class="tab-btn" data-tab="reports">{{ L('adash.tab_reports') }} {% if admin_reports_pending %}<span class="tag tag-danger">{{ admin_reports_pending }}</span>{% endif %}</button>
+  {% if admin_role == 'رئيس' %}
+    <button class="tab-btn" data-tab="teachers">{{ L('adash.tab_teachers') }}</button>
+    <button class="tab-btn" data-tab="staff">{{ L('adash.tab_staff') }}</button>
+    <button class="tab-btn" data-tab="commissions">{{ L('adash.tab_commissions') }}</button>
+    <button class="tab-btn" data-tab="withdraw">{{ L('adash.tab_withdraw') }}</button>
+    <button class="tab-btn" data-tab="settings">{{ L('adash.tab_settings') }}</button>
+  {% endif %}
+  <button class="tab-btn" data-tab="profile">{{ L('adash.tab_profile') }}</button>
+</div>
+
+<!-- ===== إعلانات ===== -->
+<div class="tab-panel active" id="tab-announce">
+  <div class="grid-2">
+    <div class="card">
+      <h3>{{ L('adash.announce_title') }}</h3>
+      <p class="muted small">{{ L('adash.announce_desc') }}</p>
+      <form method="post" action="{{ url_for('admin_add_announcement') }}">
+        <div class="field">
+          <label>{{ L('adash.announce_occasion') }}</label>
+          <select name="emoji">
+            <option value="📢">{{ L('adash.announce_opt_normal') }}</option>
+            <option value="🏮">{{ L('adash.announce_opt_ramadan') }}</option>
+            <option value="🎉">{{ L('adash.announce_opt_eid') }}</option>
+            <option value="🎊">{{ L('adash.announce_opt_general') }}</option>
+            <option value="📅">{{ L('adash.announce_opt_holiday') }}</option>
+            <option value="⚠️">{{ L('adash.announce_opt_important') }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.announce_text_label') }}</label>
+          <textarea name="message" rows="3" placeholder="{{ L('adash.announce_text_ph') }}" required></textarea>
+        </div>
+        <button class="btn btn-block" type="submit">{{ L('adash.announce_publish') }}</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>{{ L('adash.announce_current').replace('{{ n }}', announcements|length|string) }}</h3>
+      {% for a in announcements %}
+        <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+          <div class="flex-between">
+            <p style="margin:0; font-weight:600;">{{ a['emoji'] }} {{ a['message'] }}</p>
+            {% if a['is_active'] %}<span class="tag tag-success">{{ L('adash.active') }}</span>{% else %}<span class="tag tag-danger">{{ L('adash.inactive') }}</span>{% endif %}
+          </div>
+          <div class="flex mt-8" style="gap:10px;">
+            <span class="muted small">{{ L('adash.by_user').replace('{{ user }}', a['created_by']) }} · {{ a['created_at'][:10] }}</span>
+            <form method="post" action="{{ url_for('admin_toggle_announcement', announcement_id=a['id']) }}">
+              <button class="btn btn-ghost btn-sm" type="submit">
+                {% if a['is_active'] %}{{ L('adash.disable') }}{% else %}{{ L('adash.enable') }}{% endif %}
+              </button>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <div class="empty"><span class="empty-icon">📢</span><p>{{ L('adash.announce_empty') }}</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ===== طلبات تقارير ولي الأمر ===== -->
+<div class="tab-panel" id="tab-reports">
+  <div class="card">
+    <div class="flex-between" style="gap:10px; align-items:flex-start; flex-wrap:wrap;">
+      <div>
+        <h3>{{ L('adash.reports_title') }}</h3>
+        <p class="muted small mb-0">{{ L('adash.reports_desc') }}</p>
+      </div>
+      <div class="muted small" style="text-align:end;">
+        <strong>{{ L('adash.reports_support') }}:</strong>
+        <span dir="ltr">{{ support_phone }}</span>
+      </div>
+    </div>
+
+    {% if admin_reports %}
+      {% for r in admin_reports %}
+        <div style="padding:16px 0; border-bottom:1px solid var(--border);">
+          <div class="flex-between" style="gap:10px; flex-wrap:wrap;">
+            <div class="flex" style="gap:10px; flex-wrap:wrap;">
+              <span class="avatar avatar-sm">{{ (r['student_name_full'] or r['student_name'] or '؟')[0] }}</span>
+              <div>
+                <strong>{{ r['student_name_full'] or r['student_name'] }}</strong>
+                <div class="muted small">
+                  {{ r['account_code'] or '—' }} · <span dir="ltr">{{ r['phone'] or '—' }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex" style="gap:8px; flex-wrap:wrap;">
+              <span class="muted small">{{ r['created_at'][:16].replace('T', ' ') }}</span>
+              {% if r['status'] == 'sent' %}
+                <span class="tag tag-success">{{ L('adash.reports_sent') }}</span>
+              {% elif r['status'] == 'failed' %}
+                <span class="tag tag-danger">{{ L('adash.reports_failed') }}</span>
+              {% else %}
+                <span class="tag tag-accent">{{ L('adash.reports_pending') }}</span>
+              {% endif %}
+              {% if r['status'] != 'sent' %}
+                <form method="post" action="{{ url_for('admin_send_parent_report', report_id=r['id']) }}">
+                  <button class="btn btn-success btn-sm" type="submit">📲 {{ L('adash.reports_send') }}</button>
+                </form>
+              {% endif %}
+              <a class="btn btn-secondary btn-sm" target="_blank" href="{{ url_for('admin_student_report_pdf', student_id=r['student_id']) }}">🖨️ {{ L('adash.reports_print') }}</a>
+            </div>
+          </div>
+          <pre class="generated mt-16 mb-0" style="direction:rtl; text-align:start;">{{ r['report_text'] }}</pre>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty"><span class="empty-icon">📋</span><p>{{ L('adash.reports_empty') }}</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ===== بحث بالكود ===== -->
+<div class="tab-panel" id="tab-search">
+  <div class="card" style="max-width: 640px;">
+    <h3>{{ L('adash.search_title') }}</h3>
+    <p class="muted small">{{ L('adash.search_desc') }}</p>
+    <form method="get" class="input-row">
+      <input type="text" name="search_code" value="{{ search_code or '' }}" placeholder="{{ L('adash.search_ph') }}" style="flex:1;">
+      <button class="btn" type="submit">{{ L('adash.search_btn') }}</button>
+    </form>
+
+    {% if search_code %}
+      <div style="margin-top:18px;">
+        {% if search_results %}
+          {% for r in search_results %}
+            <div style="padding:14px 0; border-bottom:1px solid var(--border);">
+              <div class="flex" style="gap:8px; flex-wrap:wrap;">
+                <span class="tag">{{ r['type'] }}</span>
+                <strong>{{ r['row']['name'] or r['row']['username'] }}</strong>
+                {% if r['row'].get('is_blocked') %}<span class="tag tag-danger">{{ L('adash.inactive') }}</span>{% endif %}
+              </div>
+              <p class="muted small" style="margin:6px 0 0;">
+                {% if r['type'] == 'طالب' %}
+                  {{ L('adash.search_student_info').replace('{{ code }}', r['row']['account_code']).replace('{{ student_phone }}', r['row']['student_phone']).replace('{{ parent_phone }}', r['row']['parent_phone']) }}
+                {% elif r['type'] == 'مدرس' %}
+                  {{ L('adash.search_teacher_info').replace('{{ code }}', r['row']['account_code']).replace('{{ subject }}', r['row']['subject']) }}{% if r['row'].get('phone') %} · {{ r['row']['phone'] }}{% endif %}
+                {% else %}
+                  {{ L('adash.search_admin_info').replace('{{ username }}', r['row']['username']) }}
+                {% endif %}
+              </p>
+              <div class="flex mt-8" style="gap:8px; flex-wrap:wrap;">
+                {% if r['type'] == 'طالب' %}
+                  <form method="post" action="{{ url_for('admin_toggle_student_block', student_id=r['row']['id']) }}">
+                    <button class="btn btn-ghost btn-sm" type="submit">{% if r['row']['is_blocked'] %}{{ L('adash.enable') }}{% else %}{{ L('adash.disable') }}{% endif %}</button>
+                  </form>
+                  <details class="collapsible" style="margin:0;">
+                    <summary style="padding:8px 12px; font-size:.8rem;">{{ L('adash.change_password') }}</summary>
+                    <div class="body"><form method="post" action="{{ url_for('admin_reset_student_password', student_id=r['row']['id']) }}" class="input-row">
+                      <input type="text" name="new_password" placeholder="{{ L('adash.new_password_ph') }}" minlength="6" required>
+                      <button class="btn btn-sm btn-secondary" type="submit">{{ L('adash.save') }}</button>
+                    </form></div>
+                  </details>
+                {% elif r['type'] == 'مدرس' %}
+                  <form method="post" action="{{ url_for('admin_toggle_teacher_block', teacher_id=r['row']['id']) }}">
+                    <button class="btn btn-ghost btn-sm" type="submit">{% if r['row']['is_blocked'] %}{{ L('adash.enable') }}{% else %}{{ L('adash.disable') }}{% endif %}</button>
+                  </form>
+                  <details class="collapsible" style="margin:0;">
+                    <summary style="padding:8px 12px; font-size:.8rem;">{{ L('adash.change_password') }}</summary>
+                    <div class="body"><form method="post" action="{{ url_for('admin_reset_teacher_password', teacher_id=r['row']['id']) }}" class="input-row">
+                      <input type="text" name="new_password" placeholder="{{ L('adash.new_password_ph') }}" minlength="6" required>
+                      <button class="btn btn-sm btn-secondary" type="submit">{{ L('adash.save') }}</button>
+                    </form></div>
+                  </details>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty"><span class="empty-icon">🔍</span><p>{{ L('adash.search_empty') }}</p></div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ===== إدارة الحسابات ===== -->
+<div class="tab-panel" id="tab-accounts">
+  <div class="grid-2">
+    <div class="card">
+      <h3>{{ L('adash.students_title').replace('{{ n }}', all_students|length|string) }}</h3>
+      {% for s in all_students %}
+        <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+          <div class="flex-between">
+            <div>
+              <strong>{{ s['name'] }}</strong>
+              <span class="tag">{{ s['account_code'] }}</span>
+              {% if s['is_blocked'] %}<span class="tag tag-danger">{{ L('adash.inactive') }}</span>{% endif %}
+              <p class="muted small mb-0">{{ L('adash.student_phone_line').replace('{{ phone }}', s['student_phone']).replace('{{ parent }}', s['parent_phone']) }}</p>
+              {% if s['study_system'] %}<p class="muted small mb-0">📚 {{ s['study_system'] }} — {{ s['stream'] }}</p>{% endif %}
+            </div>
+            <div class="flex" style="gap:6px;">
+              <form method="post" action="{{ url_for('admin_toggle_student_block', student_id=s['id']) }}">
+                <button class="btn btn-ghost btn-sm" type="submit">{% if s['is_blocked'] %}{{ L('adash.enable') }}{% else %}{{ L('adash.disable') }}{% endif %}</button>
+              </form>
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_student_exemptions', student_id=s['id']) }}">{{ L('adash.exemptions') }}</a>
+              <details class="collapsible" style="margin:0;">
+                <summary style="padding:7px 10px; font-size:.78rem;">🔑</summary>
+                <div class="body"><form method="post" action="{{ url_for('admin_reset_student_password', student_id=s['id']) }}" class="input-row">
+                  <input type="text" name="new_password" placeholder="{{ L('adash.new_password_ph6') }}" minlength="6" required>
+                  <button class="btn btn-sm btn-secondary" type="submit">{{ L('adash.save') }}</button>
+                </form></div>
+              </details>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="empty"><span class="empty-icon">🎓</span><p>{{ L('adash.students_empty') }}</p></div>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <h3>{{ L('adash.teachers_title').replace('{{ n }}', all_teachers|length|string) }}</h3>
+      {% for t in all_teachers %}
+        <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+          <div class="flex-between">
+            <div>
+              <strong>{{ t['name'] }}</strong>
+              <span class="tag">{{ t['account_code'] }}</span>
+              {% if t['is_blocked'] %}<span class="tag tag-danger">{{ L('adash.inactive') }}</span>{% endif %}
+              <p class="muted small mb-0">{{ t['subject'] }}{% if t['phone'] %} · {{ t['phone'] }}{% endif %}</p>
+            </div>
+            <div class="flex" style="gap:6px;">
+              <form method="post" action="{{ url_for('admin_toggle_teacher_block', teacher_id=t['id']) }}">
+                <button class="btn btn-ghost btn-sm" type="submit">{% if t['is_blocked'] %}{{ L('adash.enable') }}{% else %}{{ L('adash.disable') }}{% endif %}</button>
+              </form>
+              <details class="collapsible" style="margin:0;">
+                <summary style="padding:7px 10px; font-size:.78rem;">🔑</summary>
+                <div class="body"><form method="post" action="{{ url_for('admin_reset_teacher_password', teacher_id=t['id']) }}" class="input-row">
+                  <input type="text" name="new_password" placeholder="{{ L('adash.new_password_ph6') }}" minlength="6" required>
+                  <button class="btn btn-sm btn-secondary" type="submit">{{ L('adash.save') }}</button>
+                </form></div>
+              </details>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="empty"><span class="empty-icon">🧑‍🏫</span><p>{{ L('adash.teachers_empty') }}</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% if admin_role == 'رئيس' %}
+<!-- ===== المدرسين ===== -->
+<div class="tab-panel" id="tab-teachers">
+  <div class="grid-2">
+    <div class="card">
+      <h3>{{ L('adash.teacher_add_title') }}</h3>
+      <form method="post" action="{{ url_for('admin_add_teacher') }}" enctype="multipart/form-data">
+        <div class="field">
+          <label>{{ L('adash.teacher_name_label') }}</label>
+          <input type="text" name="name" required>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.teacher_subject_label') }}</label>
+          <input type="text" name="subject" placeholder="{{ L('adash.teacher_subject_ph') }}" required>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.teacher_workplace_label') }}</label>
+          <input type="text" name="workplace" placeholder="{{ L('adash.teacher_workplace_ph') }}">
+        </div>
+        <div class="field">
+          <label>{{ L('adash.teacher_phone_label') }}</label>
+          <input type="tel" name="phone" placeholder="01xxxxxxxxx">
+        </div>
+        <div class="field">
+          <label>{{ L('adash.teacher_commission_label') }}</label>
+          <input type="number" name="commission_percent" min="0" max="100" step="1" value="0">
+        </div>
+        <div class="field">
+          <label>{{ L('register.photo') }}</label>
+          <input type="file" name="photo" accept="image/*">
+        </div>
+        <button class="btn btn-lg btn-block" type="submit">{{ L('adash.teacher_add_btn') }}</button>
+      </form>
+    </div>
+
+    <div>
+      {% if last_created_teacher %}
+      <div class="card" style="background: var(--success-100); border-color: var(--success);">
+        <h3>{{ L('adash.teacher_added_title').replace('{{ name }}', last_created_teacher['name']) }}</h3>
+        <p class="muted small mb-0">{{ L('login.account_code') }}</p>
+        <h2 style="margin:2px 0 12px; letter-spacing:1px;">{{ last_created_teacher['account_code'] }}</h2>
+        <p class="muted small mb-0">{{ L('login.password') }}</p>
+        <h2 style="margin:2px 0 0; letter-spacing:1px;">{{ last_created_teacher['password'] }}</h2>
+        <p class="small" style="margin-top:12px;">{{ L('adash.teacher_added_hint') }}</p>
+      </div>
+      {% endif %}
+
+      <div class="card">
+        <h3>{{ L('adash.teachers_current').replace('{{ n }}', teachers|length|string) }}</h3>
+        {% for t in teachers %}
+          <div style="padding:10px 0; border-bottom:1px solid var(--border);" class="flex">
+            {% if t['photo'] %}
+              <img class="avatar avatar-sm" src="/uploads/{{ t['photo'] }}" alt="{{ t['name'] }}">
+            {% else %}
+              <span class="avatar avatar-sm">🧑‍🏫</span>
+            {% endif %}
+            <div style="flex:1;">
+              <strong>{{ t['name'] }}</strong>
+              <p class="muted small mb-0">{{ t['subject'] }}{% if t['workplace'] %} · {{ t['workplace'] }}{% endif %} {{ L('adash.commission_pct').replace('{{ pct }}', t['commission_percent']|int|string) }}</p>
+            </div>
+            <span class="tag">{{ t['account_code'] }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== فريق الإدارة ===== -->
+<div class="tab-panel" id="tab-staff">
+  <div class="card" style="max-width: 640px;">
+    <h3>{{ L('adash.staff_title') }}</h3>
+    <p class="muted small">{{ L('adash.staff_desc') }}</p>
+
+    {% for a in staff %}
+      <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+        <div class="flex">
+          {% if a['photo'] %}
+                <img class="avatar avatar-sm" src="/uploads/{{ a['photo'] }}" alt="{{ a['username'] }}">
+          {% else %}
+            <span class="avatar avatar-sm">👤</span>
+          {% endif %}
+          <span style="flex:1; font-weight:600;">{{ a['username'] }}</span>
+          <span class="tag {% if a['role'] == 'رئيس' %}tag-success{% else %}tag-neutral{% endif %}">{{ a['role'] }}</span>
+        </div>
+        <div class="flex" style="gap:10px; margin-top:8px; flex-wrap:wrap;">
+          <span class="tag">{{ L('adash.staff_code_label') }} {{ a['username'] }}</span>
+          {% if a['password_plain'] %}
+            <span class="tag" style="direction:ltr;">{{ L('adash.staff_password_label') }} {{ a['password_plain'] }}</span>
+          {% else %}
+            <span class="tag tag-danger">{{ L('adash.staff_pw_hidden') }}</span>
+          {% endif %}
+          {% if a['id'] != me['id'] %}
+            <form method="post" action="{{ url_for('admin_reset_admin_password', staff_id=a['id']) }}" class="flex" style="gap:6px;">
+              <input type="text" name="new_password" placeholder="{{ L('adash.staff_reset_ph') }}" minlength="8" required>
+              <button class="btn btn-ghost btn-sm" type="submit">{{ L('adash.staff_reset_btn') }}</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+
+    <details class="collapsible" style="margin-top:14px;">
+      <summary>{{ L('adash.staff_add') }}</summary>
+      <div class="body">
+        <form method="post" action="{{ url_for('admin_add_staff') }}" enctype="multipart/form-data">
+          <div class="field">
+            <label>{{ L('adash.staff_username_label') }}</label>
+            <input type="text" name="username" required>
+          </div>
+          <div class="field">
+            <label>{{ L('adash.staff_password_label') }}</label>
+            <input type="password" name="password" required>
+          </div>
+          <div class="field">
+            <label>{{ L('adash.staff_role_label') }}</label>
+            <select name="role">
+              <option value="اداري">{{ L('adash.role_admin') }}</option>
+              <option value="رئيس">{{ L('adash.role_boss') }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>{{ L('adash.staff_hours_label') }}</label>
+            <div class="form-grid-2">
+              <div class="field mb-0"><label style="font-weight:400;">{{ L('adash.staff_hours_from') }}</label><input type="number" name="login_start_hour" min="0" max="23" placeholder="{{ L('adash.staff_hour_ph') }}"></div>
+              <div class="field mb-0"><label style="font-weight:400;">{{ L('adash.staff_hours_to') }}</label><input type="number" name="login_end_hour" min="0" max="23" placeholder="{{ L('adash.staff_hour_ph') }}"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>{{ L('register.photo') }}</label>
+            <input type="file" name="photo" accept="image/*">
+          </div>
+          <button class="btn btn-secondary" type="submit">{{ L('tdash.add_btn') }}</button>
+        </form>
+      </div>
+    </details>
+  </div>
+</div>
+<!-- ===== عمولات المدرسين (للرئيس بس) ===== -->
+<div class="tab-panel" id="tab-commissions">
+  <div class="grid-2">
+    <div class="card">
+      <h3>{{ L('adash.comm_title') }}</h3>
+      <p class="muted small">{{ L('adash.comm_desc') }}</p>
+      <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>{{ L('admin.th_teacher') }}</th><th>{{ L('adash.th_sales') }}</th><th>{{ L('adash.th_platform_cut') }}</th><th>{{ L('adash.th_share') }}</th><th>{{ L('adash.th_paid') }}</th><th>{{ L('adash.th_remaining') }}</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for c in commissions %}
+            <tr>
+              <td>
+                <strong>{{ c['teacher']['name'] }}</strong>
+                <p class="muted small mb-0">{{ c['teacher']['subject'] }} {{ L('adash.commission_pct').replace('{{ pct }}', c['teacher']['commission_percent']|int|string) }}</p>
+              </td>
+              <td>{{ c['gross']|int }} {{ L('account.egp_short') }}</td>
+              <td>{{ c['cut']|int }} {{ L('account.egp_short') }}</td>
+              <td>{{ c['share']|int }} {{ L('account.egp_short') }}</td>
+              <td>{{ c['paid']|int }} {{ L('account.egp_short') }}</td>
+              <td>
+                {% if c['pending'] > 0 %}
+                  <strong style="color:var(--success);">{{ c['pending']|int }} {{ L('account.egp_short') }}</strong>
+                {% else %}
+                  <span class="muted">0</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if c['pending'] > 0 %}
+                  <form method="post" action="{{ url_for('admin_teacher_payout', teacher_id=c['teacher']['id']) }}">
+                    <button class="btn btn-sm btn-success" type="submit">{{ L('adash.payout') }}</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="7" style="text-align:center; padding:24px;">{{ L('adash.teachers_empty') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>{{ L('adash.payouts_title').replace('{{ n }}', payouts|length|string) }}</h3>
+      {% for p in payouts %}
+        <div style="padding:10px 0; border-bottom:1px solid var(--border);">
+          <div class="flex-between">
+            <strong>{{ p['teacher_name'] }}</strong>
+            <span class="tag tag-success">{{ p['amount']|int }} {{ L('account.egp_short') }}</span>
+          </div>
+          <p class="muted small mb-0">{{ L('adash.payout_period').replace('{{ period }}', p['period']) }} · {{ p['paid_at'][:10] }}</p>
+        </div>
+      {% else %}
+        <div class="empty"><span class="empty-icon">💸</span><p>{{ L('adash.payouts_empty') }}</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ===== الإعدادات (للرئيس بس) ===== -->
+<div class="tab-panel" id="tab-settings">
+  <div class="grid-2">
+    <div class="card">
+      <h3>{{ L('adash.settings_ai_title') }}</h3>
+      <form method="post" action="{{ url_for('admin_settings') }}">
+        <div class="field">
+          <label>{{ L('adash.settings_ai_key_label') }}</label>
+          <input type="password" name="anthropic_key" value="{{ settings_dict.get('anthropic_key', '') }}" placeholder="sk-ant-...">
+          <p class="muted small">{{ L('adash.settings_ai_key_hint') }}</p>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_site_url_label') }}</label>
+          <input type="text" name="site_url" value="{{ settings_dict.get('site_url', '') }}" placeholder="{{ L('adash.example') }}https://seniors-platform.com" dir="ltr">
+          <p class="muted small">{{ L('adash.settings_site_url_hint') }}</p>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_backup_label') }}</label>
+          <label class="switch">
+            <input type="checkbox" name="backup_enabled" {% if settings_dict.get('backup_enabled') == '1' %}checked{% endif %}>
+            <span>{{ L('adash.settings_backup_daily') }}</span>
+          </label>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_backup_retention') }}</label>
+          <input type="number" name="backup_retention" min="1" max="90" value="{{ settings_dict.get('backup_retention', '14') }}">
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_ai_price_label') }}</label>
+          <input type="number" name="ai_subscription_price" min="1" step="1" value="{{ settings_dict.get('ai_subscription_price', '300') }}">
+          <p class="muted small">{{ L('adash.settings_ai_price_hint') }}</p>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_ai_days_label') }}</label>
+          <input type="number" name="ai_subscription_days" min="1" max="3650" value="{{ settings_dict.get('ai_subscription_days', '30') }}">
+          <p class="muted small">{{ L('adash.settings_ai_days_hint') }}</p>
+        </div>
+        <button class="btn" type="submit">{{ L('adash.save_settings') }}</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>{{ L('adash.settings_backup_card_title') }}</h3>
+      <p class="muted small">{{ L('adash.settings_backup_desc') }}</p>
+      <form method="post" action="{{ url_for('admin_backup_now') }}">
+        <button class="btn btn-secondary btn-block" type="submit">{{ L('adash.settings_backup_now') }}</button>
+      </form>
+      <p class="muted small" style="margin-top:14px;">{{ L('adash.settings_backup_cloud') }}</p>
+    </div>
+
+    <div class="card">
+      <h3>{{ L('adash.settings_security_title') }}</h3>
+      <p class="muted small">{{ L('adash.settings_security_desc') }}</p>
+      <form method="post" action="{{ url_for('admin_change_password') }}">
+        <div class="field">
+          <label>{{ L('adash.settings_current_password') }}</label>
+          <input type="password" name="current_password" required autocomplete="current-password">
+        </div>
+        <div class="field">
+          <label>{{ L('adash.new_password_label') }}</label>
+          <input type="password" name="new_password" required minlength="8" autocomplete="new-password" placeholder="{{ L('adash.new_password_ph8') }}">
+        </div>
+        <button class="btn" type="submit">{{ L('adash.change_password_btn') }}</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>{{ L('adash.settings_wa_title') }}</h3>
+      <p class="muted small">{{ L('adash.settings_wa_desc') }}</p>
+      <form method="post" action="{{ url_for('admin_whatsapp_settings') }}">
+        <div class="field">
+          <label>{{ L('adash.settings_wa_phone_id_label') }}</label>
+          <input type="text" name="whatsapp_phone_number_id" value="{{ settings_dict.get('whatsapp_phone_number_id', '') }}" placeholder="{{ L('adash.example') }}123456789012345" dir="ltr">
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_wa_token_label') }}</label>
+          <input type="password" name="whatsapp_access_token" value="{{ settings_dict.get('whatsapp_access_token', '') }}" placeholder="EAA..." dir="ltr">
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_wa_code_template_label') }}</label>
+          <input type="text" name="whatsapp_code_template" value="{{ settings_dict.get('whatsapp_code_template', '') }}" placeholder="{{ L('adash.example') }}student_login_code" dir="ltr">
+          <p class="muted small">{{ L('adash.settings_wa_code_template_hint') }}</p>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_wa_grade_template_label') }}</label>
+          <input type="text" name="whatsapp_grade_template" value="{{ settings_dict.get('whatsapp_grade_template', '') }}" placeholder="{{ L('adash.example') }}exam_grade" dir="ltr">
+          <p class="muted small">{{ L('adash.settings_wa_grade_template_hint') }}</p>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_wa_lang_label') }}</label>
+          <select name="whatsapp_lang">
+            <option value="ar" {% if settings_dict.get('whatsapp_lang', 'ar') == 'ar' %}selected{% endif %}>{{ L('adash.settings_wa_lang_ar') }}</option>
+            <option value="en" {% if settings_dict.get('whatsapp_lang', 'ar') == 'en' %}selected{% endif %}>{{ L('adash.settings_wa_lang_en') }}</option>
+          </select>
+        </div>
+        <button class="btn" type="submit">{{ L('adash.save_wa_settings') }}</button>
+      </form>
+      <form method="post" action="{{ url_for('admin_whatsapp_test') }}" style="margin-top:14px;">
+        <div class="field mb-0">
+          <label>{{ L('adash.settings_wa_test_label') }}</label>
+          <div class="flex" style="gap:8px;">
+            <input type="tel" name="test_number" placeholder="{{ L('support.phone_ph') }}" style="flex:1;">
+            <button class="btn btn-secondary" type="submit">{{ L('adash.settings_wa_test_btn') }}</button>
+          </div>
+          <p class="muted small">{{ L('adash.settings_wa_test_hint') }}</p>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>{{ L('adash.settings_pay_title') }}</h3>
+      <p class="muted small">{{ L('adash.settings_pay_desc') }}</p>
+      <form method="post" action="{{ url_for('admin_payment_settings') }}">
+        <div class="field">
+          <label>{{ L('adash.settings_pay_mode_label') }}</label>
+          <select name="payment_mode">
+            <option value="محاكاة" {% if settings_dict.get('payment_mode') != 'حقيقي' %}selected{% endif %}>{{ L('adash.settings_pay_mode_sim') }}</option>
+            <option value="حقيقي" {% if settings_dict.get('payment_mode') == 'حقيقي' %}selected{% endif %}>{{ L('adash.settings_pay_mode_real') }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_pay_api_label') }}</label>
+          <input type="password" name="paymob_api_key" value="{{ settings_dict.get('paymob_api_key', '') }}" placeholder="{{ L('adash.settings_pay_api_ph') }}" dir="ltr">
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_pay_integration_label') }}</label>
+          <input type="text" name="paymob_integration_id" value="{{ settings_dict.get('paymob_integration_id', '') }}" placeholder="{{ L('adash.example') }}4578978" dir="ltr">
+          <p class="muted small">{{ L('adash.settings_pay_integration_hint') }}</p>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_pay_iframe_label') }}</label>
+          <input type="text" name="paymob_iframe_id" value="{{ settings_dict.get('paymob_iframe_id', '') }}" placeholder="{{ L('adash.example') }}812345" dir="ltr">
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_pay_hmac_label') }}</label>
+          <input type="password" name="paymob_hmac_secret" value="{{ settings_dict.get('paymob_hmac_secret', '') }}" placeholder="{{ L('adash.settings_pay_hmac_ph') }}" dir="ltr">
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_pay_manual_label') }}</label>
+          <input type="text" name="manual_payment_details" value="{{ settings_dict.get('manual_payment_details', '') }}" placeholder="{{ L('adash.settings_pay_manual_ph') }}" dir="ltr">
+          <p class="muted small">{{ L('adash.settings_pay_manual_hint') }}</p>
+        </div>
+        <div class="grid-2" style="margin-bottom:14px;">
+          <div class="field">
+            <label>{{ L('adash.settings_pay_instapay_label') }}</label>
+            <input type="text" name="instapay_number" value="{{ settings_dict.get('instapay_number', '') }}" placeholder="{{ L('support.phone_ph') }}" dir="ltr">
+          </div>
+          <div class="field">
+            <label>{{ L('adash.settings_pay_vodafone_label') }}</label>
+            <input type="text" name="vodafone_number" value="{{ settings_dict.get('vodafone_number', '') }}" placeholder="{{ L('support.phone_ph') }}" dir="ltr">
+          </div>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_pay_wa_label') }}</label>
+          <input type="text" name="recharge_whatsapp" value="{{ settings_dict.get('recharge_whatsapp', '') }}" placeholder="{{ L('adash.example') }}0155874242488" dir="ltr">
+          <p class="muted small">{{ L('adash.settings_pay_wa_hint') }}</p>
+        </div>
+        <div class="field">
+          <label>{{ L('adash.settings_pay_support_label') }}</label>
+          <input type="text" name="support_phone" value="{{ settings_dict.get('support_phone', '') }}" placeholder="{{ L('adash.example') }}0155874242488" dir="ltr">
+          <p class="muted small">{{ L('adash.settings_pay_support_hint') }}</p>
+        </div>
+        <button class="btn" type="submit">{{ L('adash.save_pay_settings') }}</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== الفيزا والأرباح اليومية (للرئيس بس) ===== -->
+<div class="tab-panel" id="tab-withdraw">
+  <div class="grid-2">
+    <div>
+      <div class="stat-card" style="margin-bottom:16px;">
+        <div class="stat-icon accent">📅</div>
+        <div class="stat-info"><h3>{{ L('adash.today_income') }}</h3><div class="stat-value">{{ today_income|int }} <span style="font-size:.8rem;">{{ L('teacher.egp') }}</span></div><div class="stat-sub">{{ L('adash.today_income_sub') }}</div></div>
+      </div>
+
+      <div class="stat-card" style="margin-bottom:16px;">
+        <div class="stat-icon success">💰</div>
+        <div class="stat-info"><h3>{{ L('adash.total_visa') }}</h3><div class="stat-value">{{ total_revenue|int }} <span style="font-size:.8rem;">{{ L('teacher.egp') }}</span></div><div class="stat-sub">{{ L('adash.total_visa_sub') }}</div></div>
+      </div>
+
+      <div class="card">
+        <h3>{{ L('adash.visa_data_title') }}</h3>
+        <p class="muted small">{{ L('adash.visa_data_desc') }}</p>
+        {% if visa and visa['card_number'] %}
+          <div style="padding:16px; border-radius:var(--radius); background:linear-gradient(135deg,#1E3A5F,#2C5F9E); color:#fff; margin-bottom:16px;">
+            <div class="flex-between">
+              <span style="opacity:.85;">{{ visa['bank_name'] or L('adash.your_card') }}</span>
+              <span style="font-size:1.4rem;">💳</span>
+            </div>
+            <div style="font-size:1.3rem; letter-spacing:2px; margin:14px 0; direction:ltr; text-align:center;">•••• •••• •••• {{ visa['card_number'][-4:] }}</div>
+            <div style="opacity:.85;">{{ visa['holder_name'] }}</div>
+          </div>
+        {% endif %}
+        <form method="post" action="{{ url_for('admin_visa_settings') }}">
+          <div class="field">
+            <label>{{ L('adash.visa_holder_label') }}</label>
+            <input type="text" name="holder_name" value="{{ visa['holder_name'] if visa else '' }}" placeholder="{{ L('adash.visa_holder_ph') }}" required>
+          </div>
+          <div class="field">
+            <label>{{ L('adash.visa_number_label') }}</label>
+            <input type="tel" name="card_number" inputmode="numeric" pattern="[0-9]{12,19}" value="{{ visa['card_number'] if visa else '' }}" placeholder="{{ L('adash.visa_number_ph') }}" required>
+          </div>
+          <div class="field">
+            <label>{{ L('adash.bank_label') }}</label>
+            <input type="text" name="bank_name" value="{{ visa['bank_name'] if visa else '' }}" placeholder="{{ L('adash.bank_ph') }}">
+          </div>
+          <button class="btn" type="submit">{{ L('adash.save_visa') }}</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>{{ L('adash.daily_report_title') }}</h3>
+      <p class="muted small">{{ L('adash.daily_report_desc') }}</p>
+      <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>{{ L('adash.th_day') }}</th><th>{{ L('adash.th_revenue') }}</th></tr>
+        </thead>
+        <tbody>
+          {% set ns = namespace(cum=0) %}
+          {% for d in daily_income %}
+            {% set ns.cum = ns.cum + d['s'] %}
+            <tr>
+              <td>
+                {% if d['d'] == today_str %}<span class="tag tag-success">{{ L('adash.today') }}</span>{% endif %}
+                {{ d['d'] }}
+              </td>
+              <td>{{ d['s']|int }} {{ L('account.egp_short') }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="2" style="text-align:center; padding:24px;">{{ L('adash.revenue_empty') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h3>{{ L('adash.manual_orders_title') }}</h3>
+    <p class="muted small">{{ L('adash.manual_orders_desc') }}</p>
+    {% if manual_orders %}
+      <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>#</th><th>{{ L('admin.th_student') }}</th><th>{{ L('admin.th_type') }}</th><th>{{ L('adash.th_method') }}</th><th>{{ L('adash.th_amount') }}</th><th>{{ L('adash.th_order_date') }}</th><th>{{ L('adash.th_screenshot') }}</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for o in manual_orders %}
+            <tr>
+              <td>{{ o['id'] }}</td>
+              <td>{{ o['student_name'] }}</td>
+              <td>
+                {% if o['kind'] == 'teacher_ai' %}<span class="tag">{{ L('adash.ai_subscription') }}</span>
+                {% else %}<span class="tag tag-neutral">{{ L('adash.student') }}</span>{% endif %}
+              </td>
+              <td>{{ o['method'] }}</td>
+              <td><strong>{{ o['amount']|int }} {{ L('account.egp_short') }}</strong></td>
+              <td>{{ o['created_at'][:16] }}</td>
+              <td>
+                {% if o['proof_photo'] %}
+                  <a href="/uploads/{{ o['proof_photo'] }}" target="_blank">
+                    <img src="/uploads/{{ o['proof_photo'] }}" alt="{{ L('adash.screenshot_alt') }}" style="height:44px; border-radius:8px;">
+                  </a>
+                {% else %}
+                  <span class="muted small">—</span>
+                {% endif %}
+              </td>
+              <td class="flex" style="gap:8px;">
+                <form method="post" action="{{ url_for('admin_manual_payment', order_id=o['id'], action='confirm') }}">
+                  <button class="btn btn-sm" type="submit">{{ L('adash.approve') }}</button>
+                </form>
+                <form method="post" action="{{ url_for('admin_manual_payment', order_id=o['id'], action='reject') }}">
+                  <button class="btn btn-sm btn-danger" type="submit">{{ L('adash.reject') }}</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <div class="empty"><span class="empty-icon">💤</span><p>{{ L('adash.manual_orders_empty') }}</p></div>
+    {% endif %}
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h3>{{ L('adash.codes_title') }}</h3>
+    <p class="muted small">{{ L('adash.codes_desc') }}</p>
+    <form method="post" action="{{ url_for('admin_generate_codes') }}" class="flex" style="gap:10px; flex-wrap:wrap;">
+      <div class="field mb-0">
+        <label>{{ L('adash.codes_count_label') }}</label>
+        <input type="number" name="count" min="1" max="200" value="10" required>
+      </div>
+      <div class="field mb-0">
+        <label>{{ L('adash.codes_amount_label') }}</label>
+        <input type="number" name="amount" min="1" step="1" value="100" required>
+      </div>
+      <div class="field mb-0" style="flex:1; min-width:180px;">
+        <label>{{ L('adash.codes_center_label') }}</label>
+        <input type="text" name="center_name" placeholder="{{ L('adash.codes_center_ph') }}">
+      </div>
+      <button class="btn" type="submit" style="align-self:flex-end;">{{ L('adash.codes_generate') }}</button>
+    </form>
+
+    {% if recharge_stats %}
+      <div class="flex" style="gap:14px; margin-top:14px; flex-wrap:wrap;">
+        {% set ns = namespace(total=0) %}
+        {% for s in recharge_stats %}{% set ns.total = ns.total + s['c'] %}{% endfor %}
+        <span class="tag tag-neutral">{{ L('adash.codes_total').replace('{{ n }}', ns.total|string) }}</span>
+        {% for s in recharge_stats %}
+          {% if s['status'] == 'available' %}<span class="tag tag-success">{{ L('adash.codes_available').replace('{{ n }}', s['c']|string).replace('{{ amt }}', s['s']|int|string) }}</span>
+          {% elif s['status'] == 'used' %}<span class="tag tag-neutral">{{ L('adash.codes_used').replace('{{ n }}', s['c']|string).replace('{{ amt }}', s['s']|int|string) }}</span>
+          {% else %}<span class="tag tag-danger">{{ L('adash.codes_inactive').replace('{{ n }}', s['c']|string) }}</span>{% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if last_codes %}
+      <div class="alert alert-success" style="margin-top:14px;">
+        <strong>{{ L('adash.codes_last') }}</strong>
+        <div dir="ltr" style="font-family:monospace; font-size:.85rem; margin-top:6px;">
+          {% for c in last_codes %}<div>{{ c }}</div>{% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if recent_codes %}
+      <div class="table-wrap" style="margin-top:14px;">
+      <table class="data">
+        <thead>
+          <tr><th>{{ L('admin.th_code') }}</th><th>{{ L('adash.th_value') }}</th><th>{{ L('adash.th_center') }}</th><th>{{ L('tdash.th_status') }}</th><th>{{ L('adash.th_used_by') }}</th></tr>
+        </thead>
+        <tbody>
+          {% for c in recent_codes %}
+            <tr>
+              <td dir="ltr" style="font-family:monospace;">{{ c['code'] }}</td>
+              <td>{{ c['amount']|int }} {{ L('account.egp_short') }}</td>
+              <td>{{ c['center_name'] or '—' }}</td>
+              <td>
+                {% if c['status'] == 'available' %}<span class="tag tag-success">{{ L('adash.available') }}</span>
+                {% elif c['status'] == 'used' %}<span class="tag tag-neutral">{{ L('adash.used') }}</span>
+                {% else %}<span class="tag tag-danger">{{ L('adash.inactive') }}</span>{% endif %}
+              </td>
+              <td>{{ c['used_by'] or '—' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h3>{{ L('adash.ai_subs_title') }}</h3>
+    <p class="muted small">{{ L('adash.ai_subs_desc') }}</p>
+    {% if teacher_ai_subs %}
+      <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>{{ L('admin.th_teacher') }}</th><th>{{ L('adash.th_subject') }}</th><th>{{ L('tdash.th_status') }}</th><th>{{ L('adash.th_expires') }}</th><th>{{ L('adash.th_add_days') }}</th></tr>
+        </thead>
+        <tbody>
+          {% for s in teacher_ai_subs %}
+            <tr>
+              <td>{{ s['name'] }}</td>
+              <td>{{ s['subject'] }}</td>
+              <td>
+                {% if s['is_active'] %}<span class="tag tag-success">{{ L('adash.ai_active_days').replace('{{ n }}', s['days_left']|string) }}</span>
+                {% elif s['expires_at'] %}<span class="tag tag-danger">{{ L('adash.expired') }}</span>
+                {% else %}<span class="tag tag-neutral">{{ L('tdash.ai_not_active') }}</span>{% endif %}
+              </td>
+              <td>{% if s['expires_at'] %}{{ s['expires_at'][:10] }}{% else %}—{% endif %}</td>
+              <td>
+                <form method="post" action="{{ url_for('admin_teacher_ai_grant') }}" class="flex" style="gap:6px; align-items:center;">
+                  <input type="hidden" name="teacher_id" value="{{ s['id'] }}">
+                  <input type="number" name="days" min="1" max="3650" placeholder="{{ L('adash.days_ph') }}" style="width:90px;" required>
+                  <button class="btn btn-sm btn-secondary" type="submit">{{ L('tdash.add_btn') }}</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <div class="empty"><span class="empty-icon">🧑‍🏫</span><p>{{ L('adash.teachers_empty_platform') }}</p></div>
+    {% endif %}
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h3>{{ L('adash.pay_orders_title') }}</h3>
+    <p class="muted small">{{ L('adash.pay_orders_desc') }}</p>
+    <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>#</th><th>{{ L('admin.th_student') }}</th><th>{{ L('admin.th_type') }}</th><th>{{ L('adash.th_amount') }}</th><th>{{ L('tdash.th_status') }}</th><th>{{ L('adash.th_paymob_id') }}</th><th>{{ L('adash.th_date') }}</th></tr>
+      </thead>
+      <tbody>
+        {% for p in payment_orders %}
+          <tr>
+            <td>{{ p['id'] }}</td>
+            <td>{{ p['student_name'] }}</td>
+            <td>{% if p['kind'] == 'topup' %}{{ L('adash.wallet_topup') }}{% else %}{{ L('adash.buy_lesson') }}{% endif %}</td>
+            <td>{{ p['amount']|int }} {{ L('account.egp_short') }}</td>
+            <td>
+              {% if p['status'] == 'paid' %}<span class="tag tag-success">{{ L('adash.paid') }}</span>
+              {% elif p['status'] == 'failed' %}<span class="tag tag-danger">{{ L('adash.failed') }}</span>
+              {% else %}<span class="tag tag-neutral">{{ L('adash.pending') }}</span>{% endif %}
+            </td>
+            <td dir="ltr">{{ p['paymob_transaction_id'] or '—' }}</td>
+            <td>{{ p['created_at'][:16] }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" style="text-align:center; padding:24px;">{{ L('adash.pay_orders_empty') }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+<div class="tab-panel" id="tab-profile">
+  <div class="card" style="max-width: 480px;">
+    <div class="flex" style="align-items:center; gap:18px; margin-bottom:18px;">
+      {% if me and me['photo'] %}
+        <img class="avatar avatar-lg" src="/uploads/{{ me['photo'] }}" alt="{{ L('account.photo_alt').replace('{{ name }}', admin_username) }}">
+      {% else %}
+        <span class="avatar avatar-lg">🛡️</span>
+      {% endif %}
+      <div>
+        <h3 class="mb-0">{{ admin_username }}</h3>
+        <p class="muted small mb-0">{{ L('adash.role_label').replace('{{ role }}', admin_role) }}</p>
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('admin_update_photo') }}" enctype="multipart/form-data">
+      <div class="field">
+        <label>{{ L('account.photo_label') }}</label>
+        <input type="file" name="photo" accept="image/*">
+      </div>
+      <button class="btn btn-secondary" type="submit">
+        {% if me and me['photo'] %}{{ L('account.photo_change') }}{% else %}{{ L('account.photo_add') }}{% endif %}
+      </button>
+    </form>
+  </div>
+
+  <div class="card" style="max-width: 480px; margin-top:16px;">
+    <h3>{{ L('adash.settings_security_title') }}</h3>
+    <p class="muted small">{{ L('adash.settings_security_desc') }}</p>
+    <form method="post" action="{{ url_for('admin_change_password') }}">
+      <div class="field">
+        <label>{{ L('adash.settings_current_password') }}</label>
+        <input type="password" name="current_password" required autocomplete="current-password">
+      </div>
+      <div class="field">
+        <label>{{ L('adash.new_password_label') }}</label>
+        <input type="password" name="new_password" required minlength="8" autocomplete="new-password" placeholder="{{ L('adash.new_password_ph8') }}">
+      </div>
+      <button class="btn" type="submit">{{ L('adash.change_password_btn') }}</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function openTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+}
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => openTab(btn.dataset.tab));
+});
+const params = new URLSearchParams(window.location.search);
+if (params.get('tab')) { openTab(params.get('tab')); }
+</script>
+{% endblock %}

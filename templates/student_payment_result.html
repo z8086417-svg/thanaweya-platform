@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="breadcrumb" href="{{ url_for('student_account') }}">{{ L('payment.back') }}</a>
+
+<div class="page-head">
+  <h1>{{ L('payment.title') }}</h1>
+</div>
+
+<div class="card" style="max-width:480px; margin:0 auto; text-align:center;">
+  {% if payment and payment['status'] == 'paid' %}
+    <div style="font-size:3rem; margin-bottom:8px;">✅</div>
+    <h2 class="mb-0">{{ L('payment.success') }}</h2>
+    <p class="muted">
+      {{ L('payment.amount_lead').replace('{{ amount }}', payment['amount']|int|string) }}
+      {% if payment['kind'] == 'topup' %}{{ L('payment.amount_topup') }}{% else %}{{ L('payment.amount_lesson') }}{% endif %}
+    </p>
+    <p class="muted small mb-0">{{ L('payment.tx').replace('{{ tx }}', payment['paymob_transaction_id'] or '—').replace('{{ at }}', payment['paid_at'][:16] if payment['paid_at'] else '') }}</p>
+  {% elif payment and payment['status'] == 'failed' %}
+    <div style="font-size:3rem; margin-bottom:8px;">⚠️</div>
+    <h2 class="mb-0">{{ L('payment.failed_title') }}</h2>
+    <p class="muted">{{ L('payment.failed_desc') }}</p>
+    <a class="btn" href="{{ url_for('student_account') }}">{{ L('payment.back_btn') }}</a>
+  {% else %}
+    <div style="font-size:3rem; margin-bottom:8px;">⏳</div>
+    <h2 class="mb-0">{{ L('payment.pending_title') }}</h2>
+    <p class="muted">{{ L('payment.pending_desc') }}</p>
+    <a class="btn" href="{{ url_for('student_account') }}">{{ L('payment.back_btn') }}</a>
+  {% endif %}
+</div>
+{% endblock %}

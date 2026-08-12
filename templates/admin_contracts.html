@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+{% set CONTRACT_TYPE = L('admin.contract_type_map') %}
+{% set CONTRACT_STATUS = L('admin.contract_status_map') %}
+<div class="page-head flex-between">
+  <div>
+    <h1>{{ L('admin.contracts_title') }} <span class="tag">{{ admin_role }}</span></h1>
+    <p>{{ L('admin.contracts_sub') }}</p>
+  </div>
+  <div class="flex" style="gap:8px;">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_dashboard') }}">{{ L('admin.dashboard_btn') }}</a>
+    <form action="{{ url_for('admin_logout') }}" method="post">
+      <button class="btn btn-ghost" type="submit">{{ L('admin.logout_btn').replace('{{ user }}', admin_username) }}</button>
+    </form>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3 class="mb-12">{{ L('admin.contracts_new') }}</h3>
+    <form method="post" action="{{ url_for('admin_contracts') }}">
+      <div class="field">
+        <label>{{ L('admin.contracts_teacher') }}</label>
+        <select name="teacher_id" required>
+          <option value="">{{ L('admin.contracts_teacher_ph') }}</option>
+          {% for t in teachers %}
+            <option value="{{ t['id'] }}">{{ t['name'] }} — {{ t['subject'] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>{{ L('admin.contracts_type') }}</label>
+        <select name="contract_type" required>
+          <option value="عمولة">{{ L('admin.contracts_type_commission') }}</option>
+          <option value="ثابت شهري">{{ L('admin.contracts_type_monthly') }}</option>
+          <option value="حساب لكل حصة">{{ L('admin.contracts_type_per_lesson') }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>{{ L('admin.contracts_amount') }}</label>
+        <input type="text" name="amount" inputmode="decimal" placeholder="{{ L('admin.contracts_amount_ph') }}" dir="ltr">
+        <p class="hint">{{ L('admin.contracts_amount_hint') }}</p>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>{{ L('admin.contracts_start') }}</label>
+          <input type="date" name="start_date">
+        </div>
+        <div class="field">
+          <label>{{ L('admin.contracts_end') }}</label>
+          <input type="date" name="end_date">
+        </div>
+      </div>
+      <div class="field">
+        <label>{{ L('admin.contracts_notes') }}</label>
+        <textarea name="notes" rows="2" maxlength="300" placeholder="{{ L('admin.contracts_notes_ph') }}"></textarea>
+      </div>
+      <button class="btn btn-lg btn-block" type="submit">{{ L('admin.contracts_submit') }}</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3 class="mb-12">{{ L('admin.contracts_list') }}</h3>
+    {% for c in contracts %}
+      <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+        <div class="flex-between">
+          <strong>{{ c['teacher_name'] }}</strong>
+          <span class="tag {% if c['status'] == 'نشط' %}tag-success{% else %}tag-danger{% endif %}">{{ CONTRACT_STATUS.get(c['status'], c['status']) }}</span>
+        </div>
+        <p class="small mb-0 mt-8" style="color:var(--text-soft);">
+          {{ CONTRACT_TYPE.get(c['contract_type'], c['contract_type']) }} —
+          {% if c['contract_type'] == 'عمولة' %}{{ c['amount']|int }}%{% else %}{{ c['amount']|int }} {{ L('teacher.egp') }}{% endif %}
+          {% if c['start_date'] %} {{ L('admin.contracts_from').replace('{{ date }}', c['start_date']) }}{% endif %}
+          {% if c['end_date'] %} {{ L('admin.contracts_until').replace('{{ date }}', c['end_date']) }}{% endif %}
+        </p>
+        {% if c['notes'] %}<p class="small mb-0 mt-8 muted">"{{ c['notes'] }}"</p>{% endif %}
+        <div class="flex-between" style="margin-top:8px;">
+          <span class="muted small">{{ c['created_at'][:16] }}{% if c['created_by'] %} {{ L('admin.contracts_by').replace('{{ name }}', c['created_by']) }}{% endif %}</span>
+          <form method="post" action="{{ url_for('admin_toggle_contract', contract_id=c['id']) }}">
+            <button class="btn btn-sm {% if c['status'] == 'نشط' %}btn-danger{% else %}btn-success{% endif %}" type="submit">
+              {% if c['status'] == 'نشط' %}{{ L('admin.contracts_end_btn') }}{% else %}{{ L('admin.contracts_activate_btn') }}{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <div class="empty">
+        <p>{{ L('admin.contracts_empty') }}</p>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="breadcrumb" href="{{ url_for('home') }}">{{ L('parent.back_home') }}</a>
+
+<div class="page-head flex-between" style="gap:10px; flex-wrap:wrap;">
+  <div>
+    <h1>{{ L('parent.dash_title') }}</h1>
+    <p>{{ L('parent.dash_sub') }}</p>
+  </div>
+  <form method="post" action="{{ url_for('parent_send_report') }}">
+    <button class="btn btn-secondary" type="submit">📲 {{ L('parent.report_btn') }}</button>
+  </form>
+</div>
+
+{% if report_flash %}
+  <div class="alert alert-{{ 'success' if report_flash[0] else 'error' }}">
+    {{ '✅' if report_flash[0] else '⚠️' }} {{ L('parent.report_requested') }}
+    {% if support_phone %}
+      <div class="muted small mt-8">{{ L('parent.support_label') }} <strong dir="ltr">{{ support_phone }}</strong></div>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% if parent_report_requested %}
+  <div class="alert alert-success">
+    📨 {{ L('parent.report_requested') }}
+    {% if support_phone %}
+      <div class="muted small mt-8">{{ L('parent.support_label') }} <strong dir="ltr">{{ support_phone }}</strong></div>
+    {% endif %}
+  </div>
+{% endif %}
+
+<div class="card flex" style="gap:18px; align-items:center;">
+  {% if me['photo'] %}
+    <img class="avatar avatar-lg" src="/uploads/{{ me['photo'] }}" alt="{{ me['name'] }}">
+  {% else %}
+    <span class="avatar avatar-lg">🎓</span>
+  {% endif %}
+  <div style="flex:1;">
+    <h3 class="mb-0">{{ me['name'] }}</h3>
+    <p class="muted small mb-0">
+      {{ me['account_code'] }}{% if me['study_system'] %} · {{ me['study_system'] }}{% endif %}{% if me['stream'] %} · {{ me['stream'] }}{% endif %}
+    </p>
+    <p class="muted small mb-0">👨‍👩‍👧 {{ me['parent_name'] }} · {{ me['parent_phone'] }}</p>
+  </div>
+  <div class="muted small" style="text-align:{% if lang == 'ar' %}right{% else %}left{% endif %};">
+    {% if last_study_label %}
+      {{ L('parent.last_study').replace('{{ since }}', last_study_label) }}
+    {% else %}
+      {{ L('parent.never_study') }}
+    {% endif %}
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon primary">🕐</div>
+    <div class="stat-info"><h3>{{ L('parent.stat_week_title') }}</h3><div class="stat-value">{{ week_hours|round(1) }} <span style="font-size:.8rem;">{{ L('parent.hours') }}</span></div><div class="stat-sub">{{ L('parent.stat_week_sub') }}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon info">📚</div>
+    <div class="stat-info"><h3>{{ L('parent.stat_total_title') }}</h3><div class="stat-value">{{ total_hours|round(1) }} <span style="font-size:.8rem;">{{ L('parent.hours') }}</span></div><div class="stat-sub">{{ L('parent.stat_total_sub') }}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon accent">🧑‍🏫</div>
+    <div class="stat-info"><h3>{{ L('parent.stat_teachers_title') }}</h3><div class="stat-value">{{ subscribed_teachers }}</div><div class="stat-sub">{{ L('parent.stat_teachers_sub') }}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon success">✅</div>
+    <div class="stat-info"><h3>{{ L('parent.stat_done_title') }}</h3><div class="stat-value">{{ completed }} / {{ purchases|length }}</div><div class="stat-sub">{{ L('parent.stat_done_sub') }}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon danger">💸</div>
+    <div class="stat-info"><h3>{{ L('parent.stat_spent_title') }}</h3><div class="stat-value">{{ total_spent|int }} <span style="font-size:.8rem;">{{ L('account.egp_short') }}</span></div><div class="stat-sub">{{ L('parent.stat_spent_sub') }}</div></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- ===== المذاكرة عند كل مدرس ===== -->
+  <div class="card">
+    <h3>{{ L('parent.study_title') }}</h3>
+    <p class="muted small">{{ L('parent.study_sub') }}</p>
+    {% if study_by_teacher %}
+      <div class="table-wrap">
+      <table class="data">
+        <tbody>
+        {% for row in study_by_teacher %}
+          <tr>
+            <td>{{ row['teacher_name'] }}</td>
+            <td style="text-align:{% if lang == 'ar' %}left{% else %}right{% endif %};">{{ row['minutes']|round(0)|int }} {{ L('parent.minutes') }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <div class="empty"><span class="empty-icon">⏳</span><p>{{ L('parent.study_empty') }}</p></div>
+    {% endif %}
+  </div>
+
+  <!-- ===== الحصص المشترك فيها ===== -->
+  <div class="card">
+    <h3>{{ L('parent.purchases_title') }}</h3>
+    <p class="muted small">{{ L('parent.purchases_sub') }}</p>
+    {% if purchases %}
+      <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>{{ L('parent.col_lesson') }}</th><th>{{ L('parent.col_teacher') }}</th><th>{{ L('parent.col_date') }}</th><th>{{ L('parent.col_amount') }}</th></tr></thead>
+        <tbody>
+        {% for p in purchases %}
+          <tr>
+            <td>{{ p['material_title'] }}</td>
+            <td>{{ p['teacher_name'] }}</td>
+            <td>{{ p['purchased_at'][:10] }}</td>
+            <td>{{ p['amount']|int }} {{ L('account.egp_short') }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <div class="empty"><span class="empty-icon">🛒</span><p>{{ L('parent.purchases_empty') }}</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- ===== النتائج (اختيار من متعدد) ===== -->
+  <div class="card">
+    <h3>{{ L('parent.results_title') }}</h3>
+    <p class="muted small">{{ L('parent.results_sub') }}</p>
+    {% if assessment_results %}
+      <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>{{ L('parent.col_exam') }}</th><th>{{ L('parent.col_score') }}</th><th>{{ L('parent.col_date') }}</th></tr></thead>
+        <tbody>
+        {% for r in assessment_results %}
+          <tr>
+            <td>{{ r['title'] }}</td>
+            <td>{{ r['score']|round(0)|int }}%</td>
+            <td>{{ r['submitted_at'][:10] }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <div class="empty"><span class="empty-icon">📝</span><p>{{ L('parent.results_empty') }}</p></div>
+    {% endif %}
+  </div>
+
+  <!-- ===== تصحيح المدرس ===== -->
+  <div class="card">
+    <h3>{{ L('parent.graded_title') }}</h3>
+    <p class="muted small">{{ L('parent.graded_sub') }}</p>
+    {% set graded = graded_homework + graded_exams %}
+    {% if graded %}
+      <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>{{ L('parent.col_lesson') }}</th><th>{{ L('parent.col_grade') }}</th><th>{{ L('parent.col_date') }}</th></tr></thead>
+        <tbody>
+        {% for g in graded %}
+          <tr>
+            <td>{{ g['material_title'] }}{% if g['feedback'] %} — <span class="muted small">{{ g['feedback'] }}</span>{% endif %}</td>
+            <td>{{ g['grade'] }}</td>
+            <td>{{ g['submitted_at'][:10] }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <div class="empty"><span class="empty-icon">✏️</span><p>{{ L('parent.graded_empty') }}</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="empty">
+    <p>{{ L('parent.footer_note') }}</p>
+  </div>
+</div>
+{% endblock %}

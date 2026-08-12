@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="breadcrumb" href="{{ url_for('student_browse') }}">{{ L('breadcrumb_back') }}</a>
+
+<div class="page-head">
+  <h1>{{ L('homework.title') }}</h1>
+  <p>{{ L('homework.subtitle') }}</p>
+</div>
+
+{% if hw_assessments %}
+<div class="card card-soft" style="margin-bottom:18px;">
+  <h3 style="margin-top:0;">{{ L('homework.electronic') }}</h3>
+  {% for a in hw_assessments %}
+  <div class="flex-between" style="padding:10px 0; border-bottom:1px solid var(--border); gap:8px; flex-wrap:wrap;">
+    <div style="min-width:0;">
+      <strong>{{ a['title'] }}</strong>
+      <div class="muted small">{{ L('meta.lesson') }} {{ a['lesson_title'] }} · {{ L('meta.teacher_prefix') }} {{ a['teacher_name'] }} · {{ a['question_count'] }} {{ L('meta.questions_count') }}</div>
+    </div>
+    {% if a['my_score'] is not none %}
+      <div class="flex" style="gap:6px;">
+        <span class="tag tag-success">{{ L('exams.last_score') }} {{ a['my_score']|round(1) }}%</span>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('student_assessment_result', assessment_id=a['id']) }}">{{ L('exams.result') }}</a>
+      </div>
+    {% else %}
+      <a class="btn btn-sm" href="{{ url_for('student_assessment', assessment_id=a['id']) }}">{{ L('homework.start') }}</a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if homework %}
+<div class="grid-2">
+  {% for hw in homework %}
+  <div class="card">
+    <div class="flex-between mb-16">
+      <h3 class="mb-0">{{ hw['title'] }}</h3>
+      <span class="tag">{{ hw['teacher_name'] }}</span>
+    </div>
+    <p class="lc-content" style="font-size:.88rem;">{{ hw['content'] }}</p>
+    <hr class="divider">
+
+    {% if hw['graded_at'] %}
+      <div class="card" style="background: var(--success-100); border:none; margin-bottom:12px;">
+        <p class="muted small mb-0">{{ L('homework.grade_label') }}</p>
+        <h3 style="margin:4px 0;">{{ hw['grade'] }}</h3>
+        {% if hw['feedback'] %}<p class="mb-0 small">{{ L('homework.teacher_feedback') }} {{ hw['feedback'] }}</p>{% endif %}
+      </div>
+      <div class="flex-between">
+        <span class="muted small">{{ L('homework.submitted_label') }} {{ hw['submitted_at'][:16] }}</span>
+        <a class="btn btn-sm btn-secondary" href="{{ url_for('student_teacher_view', teacher_id=hw['teacher_id']) }}">{{ L('homework.open') }}</a>
+      </div>
+    {% elif hw['submitted_at'] %}
+      <div class="alert alert-info mb-16">{{ L('homework.submitted_ok') }}</div>
+      <a class="btn btn-sm btn-secondary" href="{{ url_for('student_teacher_view', teacher_id=hw['teacher_id']) }}">{{ L('homework.edit_answer') }}</a>
+    {% else %}
+      <p class="muted small mb-16">{{ L('homework.not_submitted') }}</p>
+      <a class="btn btn-sm" href="{{ url_for('student_teacher_view', teacher_id=hw['teacher_id']) }}">{{ L('homework.submit_now') }}</a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="empty"><span class="empty-icon">📔</span><p>{{ L('homework.empty') }}</p></div></div>
+{% endif %}
+{% endblock %}

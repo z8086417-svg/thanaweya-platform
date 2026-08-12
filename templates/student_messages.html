@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="breadcrumb" href="{{ url_for('student_browse') }}">{{ L('breadcrumb_back') }}</a>
+
+<div class="page-head">
+  <h1>{{ L('messages.title') }}</h1>
+  <p>{{ L('messages.subtitle') }}</p>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>{{ L('messages.new_chat') }}</h3>
+    <form method="get" action="{{ url_for('student_chat_with_friend', friend_code='PLACEHOLDER') }}" onsubmit="this.action = this.action.replace('PLACEHOLDER', document.getElementById('friendCodeInput').value.trim().toUpperCase()); return true;">
+      <div class="field">
+        <label>{{ L('messages.friend_code') }}</label>
+        <input type="text" id="friendCodeInput" placeholder="{{ L('messages.friend_code_ph') }}" required>
+      </div>
+      <button class="btn btn-block" type="submit">{{ L('messages.open_chat') }}</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>{{ L('messages.my_chats') }} ({{ friends|length }})</h3>
+    {% for f in friends %}
+      <a href="{{ url_for('student_chat_with_friend', friend_code=f['account_code']) }}" style="display:block; padding:12px; border-bottom:1px solid var(--border); text-decoration:none; color:var(--text);">
+        <div class="flex">
+          <span class="avatar avatar-sm">{{ f['name'][0] if f['name'] else '؟' }}</span>
+          <div>
+            <strong style="font-size:.92rem;">{{ f['name'] }}</strong>
+            <p class="muted small mb-0">{{ f['account_code'] }}</p>
+          </div>
+        </div>
+      </a>
+    {% else %}
+      <div class="empty"><span class="empty-icon">💬</span><p>{{ L('messages.empty') }}</p></div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

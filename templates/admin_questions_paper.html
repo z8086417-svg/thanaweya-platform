@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ L('qp.title') }} — {{ today }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+    color: #1f2430;
+    background: #f0f2f7;
+    padding: 24px;
+  }
+
+  .paper {
+    max-width: 860px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid #e3e6ee;
+    border-top: 6px solid #4C1D95;
+    border-radius: 14px;
+    padding: 30px 40px;
+    box-shadow: 0 8px 30px rgba(30, 30, 60, .12);
+  }
+
+  .paper-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 2px solid #eceff5;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand svg { width: 42px; height: 42px; }
+  .brand .bname { font-size: 1.3rem; font-weight: 800; color: #4C1D95; line-height: 1.2; }
+  .brand .bsub { font-size: .8rem; color: #7a8294; font-weight: 600; }
+  .report-id {
+    font-size: .78rem; color: #7a8294; background: #f4f5fa;
+    border: 1px dashed #cfd4e2; border-radius: 8px; padding: 6px 12px; text-align: center;
+  }
+  .report-id strong { display: block; color: #1f2430; font-size: .9rem; }
+
+  .doc-title { text-align: center; font-size: 1.5rem; font-weight: 800; color: #141a2b; margin: 4px 0 2px; }
+  .doc-sub { text-align: center; color: #7a8294; font-size: .85rem; margin-bottom: 20px; }
+
+  .stage-block { margin-bottom: 26px; }
+  .stage-title {
+    background: #4C1D95; color: #fff; font-size: 1.05rem; font-weight: 800;
+    padding: 9px 14px; border-radius: 10px; margin-bottom: 12px;
+  }
+  .stream-title {
+    font-size: .92rem; font-weight: 800; color: #4C1D95;
+    margin: 12px 0 6px; padding: 6px 12px; background: #f0edfa;
+    border-right: 4px solid #7c3aed; border-radius: 6px;
+  }
+  .subject-title {
+    font-size: .98rem; font-weight: 800; color: #2d2f43;
+    margin: 14px 0 8px; padding: 8px 12px; background: #f4f5fa;
+    border-right: 4px solid #4C1D95; border-radius: 6px;
+  }
+  .exam-title { font-size: .9rem; font-weight: 700; color: #6b7280; margin: 10px 0 8px; }
+
+  .question { padding: 10px 12px; margin-bottom: 10px; border: 1px solid #eceff5; border-radius: 10px; }
+  .q-text { font-weight: 700; font-size: .92rem; line-height: 1.7; margin-bottom: 6px; }
+  .q-text .n { display: inline-flex; min-width: 30px; height: 30px; align-items: center; justify-content: center;
+               background: #4C1D95; color: #fff; border-radius: 8px; font-size: .8rem; margin-inline-end: 8px; }
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; }
+  .option { font-size: .85rem; color: #374151; line-height: 1.6; }
+  .option .l { font-weight: 800; color: #7a8294; }
+  .option.correct { color: #15803d; font-weight: 700; }
+  .option.correct .l { color: #15803d; }
+
+  .answer-key {
+    margin-top: 28px; border-top: 3px solid #4C1D95; padding-top: 16px;
+  }
+  .answer-key h2 { font-size: 1.1rem; font-weight: 800; color: #4C1D95; margin-bottom: 10px; }
+  .answer-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .answer-table th { background: #4C1D95; color: #fff; padding: 7px 10px; text-align: center; }
+  .answer-table td { border: 1px solid #e4e7ef; padding: 6px 10px; text-align: center; }
+  .answer-table tr:nth-child(even) td { background: #fafbfd; }
+
+  .support { text-align: center; margin-top: 22px; font-size: .82rem; color: #7a8294; }
+  .support strong { color: #4C1D95; }
+
+  .no-print { text-align: center; margin: 18px auto 0; max-width: 860px; }
+  .no-print .btn {
+    display: inline-block; font-family: 'Cairo', sans-serif; font-size: 1rem; font-weight: 700;
+    color: #fff; background: #4C1D95; border: none; border-radius: 10px; padding: 12px 26px;
+    cursor: pointer; text-decoration: none; box-shadow: 0 4px 12px rgba(76, 29, 149, .35);
+  }
+  .no-print .btn:hover { background: #3b1677; }
+  .no-print .btn.ghost { background: #fff; color: #4C1D95; border: 1px solid #4C1D95; margin-right: 10px; box-shadow: none; }
+
+  .footer-note { font-size: .78rem; color: #9aa1b1; text-align: center; margin-top: 14px; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .paper { box-shadow: none; border: none; border-radius: 0; max-width: 100%; padding: 0; border-top: none; }
+    .no-print { display: none !important; }
+    .options { break-inside: avoid; }
+    .question { break-inside: avoid; }
+    .stage-block { break-inside: auto; }
+    @page { size: A4; margin: 12mm 11mm; }
+    @page :left { @top-left { content: attr(data-title); } }
+  }
+
+  @media (max-width: 640px) {
+    .paper { padding: 20px 16px; }
+    .paper-head { flex-direction: column; align-items: flex-start; }
+    .options { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="paper">
+  <div class="paper-head">
+    <div class="brand">
+      <svg viewBox="0 0 90 90" aria-hidden="true">
+        <rect width="90" height="90" rx="20" fill="#4C1D95"/>
+        <rect x="18" y="52" width="12" height="20" rx="6" fill="#fff" opacity="0.55"/>
+        <rect x="39" y="40" width="12" height="32" rx="6" fill="#fff" opacity="0.78"/>
+        <rect x="60" y="28" width="12" height="44" rx="6" fill="#fff"/>
+      </svg>
+      <div>
+        <div class="bname">SENIORS</div>
+        <div class="bsub">{{ L('chrome.brand') }}</div>
+      </div>
+    </div>
+    <div class="report-id">
+      {{ L('qp.count') }}
+      <strong>{{ total_questions }} {{ L('qp.questions') }}</strong>
+    </div>
+  </div>
+
+  <h1 class="doc-title">📚 {{ L('qp.title') }}</h1>
+  <p class="doc-sub">{{ L('qp.sub').replace('{{ date }}', today) }}</p>
+
+  {% for stage_id, stage in stages %}
+  <div class="stage-block">
+    <div class="stage-title">🎓 {{ stage['name'] }}</div>
+    {% for stream, subjects in stage['streams'].items() %}
+      <div class="stream-title">🎯 {{ stream }}</div>
+      {% for subject, exams in subjects.items() %}
+        <div class="subject-title">📖 {{ subject }}</div>
+        {% for exam_title, questions in exams.items() %}
+          <div class="exam-title">📝 {{ exam_title }}</div>
+          {% for q in questions %}
+            {% set letters = ['أ', 'ب', 'ج', 'د'] %}
+            <div class="question">
+              <div class="q-text"><span class="n">{{ q['number'] }}</span>{{ q['question_text'] }}</div>
+              <div class="options">
+                <div class="option {% if q['correct_index'] == 0 %}correct{% endif %}"><span class="l">أ.</span> {{ q['option_a'] }}</div>
+                <div class="option {% if q['correct_index'] == 1 %}correct{% endif %}"><span class="l">ب.</span> {{ q['option_b'] }}</div>
+                <div class="option {% if q['correct_index'] == 2 %}correct{% endif %}"><span class="l">ج.</span> {{ q['option_c'] }}</div>
+                <div class="option {% if q['correct_index'] == 3 %}correct{% endif %}"><span class="l">د.</span> {{ q['option_d'] }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        {% endfor %}
+      {% endfor %}
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  {% if total_questions %}
+  <div class="answer-key">
+    <h2>✅ {{ L('qp.answer_key') }}</h2>
+    <table class="answer-table">
+      <thead>
+        <tr>
+          <th>{{ L('qp.col_num') }}</th>
+          <th>{{ L('qp.col_stage') }}</th>
+          <th>{{ L('qp.col_stream') }}</th>
+          <th>{{ L('qp.col_subject') }}</th>
+          <th>{{ L('qp.col_answer') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set letters = ['أ', 'ب', 'ج', 'د'] %}
+        {% for stage_id, stage in stages %}
+          {% for stream, subjects in stage['streams'].items() %}
+            {% for subject, exams in subjects.items() %}
+              {% for exam_title, questions in exams.items() %}
+                {% for q in questions %}
+                  <tr>
+                    <td>{{ q['number'] }}</td>
+                    <td>{{ stage['name'] }}</td>
+                    <td>{{ stream }}</td>
+                    <td>{{ subject }}</td>
+                    <td style="font-weight:800; color:#15803d;">{{ letters[q['correct_index']] }}</td>
+                  </tr>
+                {% endfor %}
+              {% endfor %}
+            {% endfor %}
+          {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="footer-note">{{ L('qp.note') }}</div>
+
+  <div class="support">
+    {{ L('parent.support_label') }} <strong dir="ltr">{{ support_phone }}</strong>
+  </div>
+</div>
+
+<div class="no-print">
+  <button type="button" class="btn" onclick="window.print()">🖨️ {{ L('qp.download') }}</button>
+  <a class="btn ghost" href="{{ url_for('admin_dashboard', tab='reports') }}">{{ L('action.back_home') }}</a>
+</div>
+
+<script>
+  window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 500); });
+</script>
+</body>
+</html>

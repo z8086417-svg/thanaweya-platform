@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="breadcrumb" href="{{ url_for('student_messages') }}">{{ L('chat.back') }}</a>
+
+<div class="page-head flex-between">
+  <div class="flex" style="gap:14px;">
+    <span class="avatar">{{ friend_name[0] if friend_name else '؟' }}</span>
+    <div>
+      <h1>💬 {{ friend_name }}</h1>
+      <p class="mb-0" style="font-size:.85rem;">{{ L('chat.code') }} {{ friend_code }}</p>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="padding:16px;">
+  <div class="chat-box" style="height:420px;">
+    {% for m in messages %}
+      <div class="msg {% if m['from_code'] == my_code %}student{% else %}assistant{% endif %}">
+        {{ m['content'] }}
+        <span class="msg-meta" style="display:block; font-size:.72rem; opacity:.7; margin-top:4px;">{{ m['created_at'][:16] }}</span>
+      </div>
+    {% else %}
+      <p class="muted small center" style="align-self:center;">{{ L('chat.empty') }}</p>
+    {% endfor %}
+  </div>
+
+  <form method="post" class="chat-input-row">
+    <input type="text" name="content" placeholder="{{ L('chat.input_ph') }}" required autofocus>
+    <button class="btn" type="submit">{{ L('chat.send') }}</button>
+  </form>
+</div>
+{% endblock %}

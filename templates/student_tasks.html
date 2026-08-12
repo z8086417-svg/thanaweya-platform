@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ L('tasks.title') }}</h1>
+  <p>{{ L('tasks.subtitle') }}</p>
+</div>
+
+<div class="card card-soft" style="margin-bottom:18px;">
+  <div class="flex-between">
+    <strong>{{ L('tasks.progress') }}</strong>
+    <div style="flex:1; min-width:140px;">
+      <div class="progress"><div id="doneBar" style="width: {{ (completed_count / total_count * 100) if total_count else 0 }}%;"></div></div>
+    </div>
+    <span class="tag tag-success">{{ L('tasks.done_word') }} <span id="doneCount">{{ completed_count }}</span> {{ L('tasks.of_word') }} {{ total_count }}</span>
+  </div>
+</div>
+
+<div class="grid-2">
+  {% for t in tasks %}
+  <div class="card task-card {{ 'task-done' if t['is_completed'] }}" id="task-{{ t['task_number'] }}" data-num="{{ t['task_number'] }}">
+    <div class="flex-between mb-16">
+      <div class="flex" style="gap:8px;">
+        <span class="task-num">{{ t['task_number'] }}</span>
+        <h3 class="mb-0">{{ L('tasks.task_word') }} {{ t['task_number'] }}</h3>
+      </div>
+      {% if t['is_completed'] %}
+        <span class="tag tag-success">{{ L('tasks.done') }}</span>
+      {% else %}
+        <span class="tag tag-neutral">{{ L('tasks.in_progress') }}</span>
+      {% endif %}
+    </div>
+
+    <textarea class="task-title" data-num="{{ t['task_number'] }}" rows="2" placeholder="{{ L('tasks.placeholder') }}">{{ t['title'] }}</textarea>
+    <div class="saved-hint" id="saved-{{ t['task_number'] }}"></div>
+
+    <div class="task-timer" id="timer-{{ t['task_number'] }}" data-elapsed="{{ t['elapsed_seconds'] }}" data-running="{{ 1 if t['stopwatch_running'] else 0 }}">00:00</div>
+
+    <div class="flex" style="gap:6px; flex-wrap:wrap; margin-top:12px;">
+      <button class="btn btn-sm task-start" data-num="{{ t['task_number'] }}">{{ L('tasks.start') }}</button>
+      <button class="btn btn-secondary btn-sm task-pause" data-num="{{ t['task_number'] }}">{{ L('tasks.pause') }}</button>
+      <button class="btn btn-ghost btn-sm task-reset" data-num="{{ t['task_number'] }}">{{ L('tasks.reset') }}</button>
+    </div>
+
+    <div style="margin-top:12px;">
+      {% if t['is_completed'] %}
+        <button class="btn btn-success btn-sm task-complete" data-num="{{ t['task_number'] }}">{{ L('tasks.complete') }}</button>
+        <button class="btn btn-ghost btn-sm task-uncomplete" data-num="{{ t['task_number'] }}">{{ L('tasks.revert') }}</button>
+      {% else %}
+        <button class="btn btn-success btn-sm task-complete" data-num="{{ t['task_number'] }}">{{ L('tasks.done') }}</button>
+      {% endif %}
+    </div>
+
+    {% if t['is_completed'] and t['congrats_message'] %}
+      <div class="alert alert-success task-congrats" id="congrats-{{ t['task_number'] }}" style="margin-top:12px; margin-bottom:0;">🎉 {{ congrats_map.get(t['congrats_message'], t['congrats_message']) }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="modal-overlay" id="congratsModal">
+  <div class="modal" style="text-align:center;">
+    <div class="big-icon">🎉</div>
+    <h3 style="margin-top:14px;">{{ L('tasks.congrats_title') }}</h3>
+    <p id="congratsText" style="font-size:1.35rem; margin:14px 0 0;">{{ L('tasks.congrats_line') }}</p>
+    <div class="modal-actions" style="justify-content:center; margin-top:24px;">
+      <button class="btn btn-success" onclick="document.getElementById('congratsModal').classList.remove('show')">{{ L('tasks.congrats_ok') }}</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const TASK_COUNT = {{ total_count }};
+  const CONGRATS_MAP = {{ congrats_map | tojson }};
+  const state = {};
+  for (let n = 1; n <= TASK_COUNT; n++) {
+    const el = document.getElementById('timer-' + n);
+    state[n] = { running: el.dataset.running === '1', elapsed: parseInt(el.dataset.elapsed || '0', 10) };
+  }
+
+  function fmt(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    const pad = v => String(v).padStart(2, '0');
+    return h > 0 ? h + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s);
+  }
+
+  function paint(n) {
+    const el = document.getElementById('timer-' + n);
+    el.textContent = fmt(state[n].elapsed);
+    el.classList.toggle('running', state[n].running);
+  }
+
+  setInterval(() => {
+    for (let n = 1; n <= TASK_COUNT; n++) {
+      if (state[n].running) state[n].elapsed++;
+      paint(n);
+    }
+  }, 1000);
+
+  async function post(url, body) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  }
+
+  function markSaved(n) {
+    const h = document.getElementById('saved-' + n);
+    h.textContent = '{{ L('tasks.saved') }}';
+    clearTimeout(h._t);
+    h._t = setTimeout(() => { h.textContent = ''; }, 1500);
+  }
+
+  document.querySelectorAll('.task-title').forEach(ta => {
+    ta.addEventListener('blur', async () => {
+      const n = parseInt(ta.dataset.num, 10);
+      const res = await post('/student/tasks/save-title', { task_number: n, title: ta.value });
+      if (res.ok) markSaved(n);
+    });
+  });
+
+  document.querySelectorAll('.task-start').forEach(b => b.addEventListener('click', async () => {
+    const n = parseInt(b.dataset.num, 10);
+    const res = await post('/student/tasks/timer', { task_number: n, action: 'start' });
+    if (res.ok) { state[n].running = true; state[n].elapsed = res.elapsed_seconds; paint(n); }
+  }));
+  document.querySelectorAll('.task-pause').forEach(b => b.addEventListener('click', async () => {
+    const n = parseInt(b.dataset.num, 10);
+    const res = await post('/student/tasks/timer', { task_number: n, action: 'pause' });
+    if (res.ok) { state[n].running = false; state[n].elapsed = res.elapsed_seconds; paint(n); }
+  }));
+  document.querySelectorAll('.task-reset').forEach(b => b.addEventListener('click', async () => {
+    const n = parseInt(b.dataset.num, 10);
+    const res = await post('/student/tasks/timer', { task_number: n, action: 'reset' });
+    if (res.ok) { state[n].running = false; state[n].elapsed = 0; paint(n); }
+  }));
+
+  document.querySelectorAll('.task-complete').forEach(b => b.addEventListener('click', async () => {
+    const n = parseInt(b.dataset.num, 10);
+    const res = await post('/student/tasks/complete', { task_number: n });
+    if (res.ok && res.completed) {
+      document.getElementById('congratsText').textContent = CONGRATS_MAP[res.message] || res.message;
+      document.getElementById('congratsModal').classList.add('show');
+      setTimeout(() => location.reload(), 2400);
+    } else {
+      location.reload();
+    }
+  }));
+  document.querySelectorAll('.task-uncomplete').forEach(b => b.addEventListener('click', async () => {
+    const n = parseInt(b.dataset.num, 10);
+    await post('/student/tasks/complete', { task_number: n });
+    location.reload();
+  }));
+
+  for (let n = 1; n <= TASK_COUNT; n++) paint(n);
+</script>
+{% endblock %}

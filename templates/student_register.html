@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="auth-shell">
+  <div class="auth-card" style="max-width: 540px;">
+    <div class="auth-icon">📝</div>
+    <h1>{{ L('register.title') }}</h1>
+    <p class="auth-sub">{{ L('register.subtitle') }}</p>
+
+    {% if error %}
+      <div class="alert alert-error">⚠️ {{ T(error) }}</div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+      <div class="form-grid-2">
+        <div class="field">
+          <label>{{ L('register.student_name') }}</label>
+          <input type="text" name="name" required>
+        </div>
+        <div class="field">
+          <label>{{ L('register.parent_name') }}</label>
+          <input type="text" name="parent_name" required>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="field">
+          <label>{{ L('register.parent_job') }}</label>
+          <input type="text" name="parent_job" placeholder="{{ L('register.optional') }}">
+        </div>
+        <div class="field">
+          <label>{{ L('register.national_id') }}</label>
+          <input type="text" name="national_id" maxlength="14" placeholder="{{ L('register.national_id_ph') }}" required>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="field">
+          <label>{{ L('register.student_phone') }}</label>
+          <input type="tel" name="student_phone" placeholder="01xxxxxxxxx" required>
+        </div>
+        <div class="field">
+          <label>{{ L('register.parent_phone') }}</label>
+          <input type="tel" name="parent_phone" placeholder="01xxxxxxxxx" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>{{ L('register.google_email') }}</label>
+        <input type="email" name="google_email" required>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="field">
+          <label>{{ L('register.study_system') }}</label>
+          <select name="study_system" id="studySystem" required onchange="toggleStreams()">
+            <option value="">{{ L('register.choose') }}</option>
+            <option value="ثانوية عامة">{{ L('register.system_general') }}</option>
+            <option value="بكالوريا">{{ L('register.system_baccalaureate') }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>{{ L('register.stream') }}</label>
+          <select name="stream" id="streamSelect" required>
+            <option value="">{{ L('register.choose') }}</option>
+            <optgroup label="{{ L('register.system_general') }}" data-system="ثانوية عامة">
+              <option value="أدبي">{{ L('register.stream_literary') }}</option>
+              <option value="علمي علوم">{{ L('register.stream_science') }}</option>
+              <option value="علمي رياضة">{{ L('register.stream_math') }}</option>
+            </optgroup>
+            <optgroup label="{{ L('register.system_baccalaureate') }}" data-system="بكالوريا">
+              <option value="الطب وعلوم الحياة">{{ L('register.stream_medicine') }}</option>
+              <option value="الهندسة وعلوم الحاسب">{{ L('register.stream_engineering') }}</option>
+              <option value="الأعمال">{{ L('register.stream_business') }}</option>
+              <option value="الآداب والفنون">{{ L('register.stream_arts') }}</option>
+            </optgroup>
+          </select>
+          <div class="hint">{{ L('register.stream_hint') }}</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>{{ L('register.photo') }}</label>
+        <input type="file" name="photo" accept="image/*">
+      </div>
+
+      <button class="btn btn-lg btn-block" type="submit">{{ L('register.submit') }}</button>
+    </form>
+
+    <p class="auth-alt">
+      {{ L('register.has_account') }} <a href="{{ url_for('login') }}">{{ L('action.login') }}</a>
+    </p>
+  </div>
+</div>
+
+<script>
+function toggleStreams() {
+  const system = document.getElementById('studySystem').value;
+  const select = document.getElementById('streamSelect');
+  select.querySelectorAll('optgroup').forEach((g) => {
+    g.style.display = (g.dataset.system === system) ? '' : 'none';
+  });
+  if (select.value) {
+    const chosen = select.querySelector('option[value="' + select.value + '"]');
+    if (!chosen || !chosen.closest('optgroup') || chosen.closest('optgroup').dataset.system !== system) {
+      select.value = '';
+    }
+  }
+}
+toggleStreams();
+</script>
+{% endblock %}

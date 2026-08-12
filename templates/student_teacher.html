@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="breadcrumb" href="{{ url_for('student_browse') }}">{{ L('teacher.breadcrumb') }}</a>
+
+<div class="page-head flex-between">
+  <div class="flex" style="gap:16px;">
+    <span class="avatar avatar-lg">{{ teacher['name'][0] if teacher['name'] else '؟' }}</span>
+    <div>
+      <h1>{{ teacher['name'] }}</h1>
+      <p>{{ teacher['bio'] }}</p>
+      <div class="flex" style="gap:6px; flex-wrap:wrap;">
+        {% for o in offerings %}
+          <span class="tag">{{ o['curriculum_name'] }} - {{ o['stage_name'] }} - {{ o['subject'] }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% if gift_credits > 0 %}
+    <span class="tag tag-accent" style="font-size:.9rem; padding:8px 16px;">{{ L('teacher.gift').replace('{{ n }}', gift_credits|string) }}</span>
+  {% endif %}
+</div>
+
+<div class="grid-2">
+  <div>
+    {% for m in materials %}
+    <div class="lesson-card {% if not m['purchased'] %}locked{% endif %}">
+      <div class="lc-head">
+        <h4>{{ m['title'] }}</h4>
+        {% if m['price'] > 0 %}
+          <span class="tag tag-accent">{{ m['price']|int }} {{ L('teacher.egp') }}</span>
+        {% else %}
+          <span class="tag tag-success">{{ L('teacher.free') }}</span>
+        {% endif %}
+      </div>
+      <div class="lc-meta">
+        {% if m['kind'] == 'فيديو' %}<span class="tag tag-info">{{ L('kind.video') }}</span>
+        {% elif m['kind'] == 'امتحان' %}<span class="tag tag-accent">{{ L('kind.exam') }}</span>
+        {% elif m['kind'] == 'واجب' %}<span class="tag">{{ L('kind.homework') }}</span>
+        {% else %}<span class="tag tag-neutral">{{ L('kind.text') }}</span>{% endif %}
+        <span>{{ m['curriculum_name'] }} · {{ m['stage_name'] }} · {{ m['subject'] }}</span>
+        {% if m['stream'] %}<span class="tag tag-accent">{{ m['stream'] }}</span>{% endif %}
+        {% if m['avg_rating'] %}
+          <span>⭐ {{ m['avg_rating'] }} ({{ m['review_count'] }} {{ L('teacher.reviews') }})</span>
+        {% else %}
+          <span>{{ L('teacher.no_reviews') }}</span>
+        {% endif %}
+      </div>
+
+      {% if m['expired'] %}
+        <div class="alert alert-error">{{ L('teacher.expired').replace('{{ days }}', m['access_days']|string) }}</div>
+      {% endif %}
+      {% if m['purchased'] and m['days_left'] %}
+        <div class="alert alert-info">{{ L('teacher.days_left').replace('{{ days }}', m['days_left']|string) }}</div>
+      {% endif %}
+      {% if m['sequence_locked'] %}
+        <div class="alert alert-warning">{{ L('teacher.sequence_locked').replace('{{ title }}', m['sequence_blocked_by']) }}</div>
+      {% elif m['purchased'] and m['sequence_completed'] %}
+        <div class="alert alert-success">{{ L('teacher.completed') }}</div>
+      {% endif %}
+
+      {% if m['purchased'] %}
+        <a class="btn btn-block" href="{{ url_for('student_lesson', material_id=m['id']) }}">{{ L('teacher.open_lesson') }}</a>
+      {% else %}
+        <div class="lc-lock">
+          {% if m['sequence_locked'] %}
+            <p>{{ L('teacher.sequence_locked').replace('{{ title }}', m['sequence_blocked_by']) }}</p>
+          {% else %}
+            <p>{{ L('teacher.locked_buy') }}</p>
+            <form method="post" action="{{ url_for('student_buy', material_id=m['id']) }}">
+              <button class="btn" type="submit">{{ L('teacher.buy').replace('{{ price }}', (m['price']|int)|string) }}</button>
+            </form>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="card"><div class="empty"><span class="empty-icon">📚</span><p>{{ L('teacher.empty') }}</p></div></div>
+    {% endfor %}
+  </div>
+
+  <div>
+    <div class="card" style="position: sticky; top: calc(var(--header-h) + 20px);">
+      <h3>{{ L('teacher.assistant_title').replace('{{ name }}', teacher['name']) }}</h3>
+      <p class="muted small">{{ L('teacher.assistant_hint') }}</p>
+      <div class="chat-box" id="chatBox">
+        {% for m in history %}
+          <div class="msg {{ m['role'] }}">{{ m['content'] }}</div>
+        {% else %}
+          <p class="muted small center" style="align-self:center;">{{ L('teacher.assistant_empty') }}</p>
+        {% endfor %}
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="questionInput" placeholder="{{ L('teacher.assistant_ph') }}">
+        <button class="btn" id="sendBtn">{{ L('teacher.send') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const teacherId = {{ teacher['id'] }};
+const TEXTS = {
+  thinking: {{ L('teacher.thinking') | tojson }},
+  error: {{ L('teacher.error') | tojson }},
+  connError: {{ L('teacher.conn_error') | tojson }}
+};
+const chatBox = document.getElementById('chatBox');
+const input = document.getElementById('questionInput');
+const sendBtn = document.getElementById('sendBtn');
+
+chatBox.scrollTop = chatBox.scrollHeight;
+
+function addMsg(role, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+async function sendQuestion() {
+  const question = input.value.trim();
+  if (!question) return;
+  addMsg('student', question);
+  input.value = '';
+  sendBtn.disabled = true;
+  addMsg('assistant', TEXTS.thinking);
+  try {
+    const res = await fetch(`/api/chat/${teacherId}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question})
+    });
+    const data = await res.json();
+    chatBox.removeChild(chatBox.lastChild);
+    addMsg('assistant', data.answer || data.error || TEXTS.error);
+  } catch (e) {
+    chatBox.removeChild(chatBox.lastChild);
+    addMsg('assistant', TEXTS.connError);
+  }
+  sendBtn.disabled = false;
+}
+
+sendBtn.addEventListener('click', sendQuestion);
+input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendQuestion(); });
+
+setInterval(() => {
+  if (document.visibilityState === 'visible') {
+    fetch(`/student/heartbeat/${teacherId}`, { method: 'POST' }).catch(() => {});
+  }
+}, 60000);
+</script>
+{% endblock %}

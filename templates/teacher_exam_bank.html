@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head flex-between">
+  <div>
+    <h1>{{ L('bank.teacher_exam_title') }}</h1>
+    <p>{{ L('bank.teacher_exam_subtitle') }}</p>
+  </div>
+  <div class="flex" style="gap:8px;">
+    <a class="btn btn-secondary" href="{{ url_for('teacher_question_bank') }}">🗂️ {{ L('qb.admin_title') }}</a>
+    <a class="btn btn-ghost" href="{{ url_for('teacher_dashboard', teacher_id=session['teacher_id']) }}">{{ L('bank.back_teacher') }}</a>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:18px;">
+  <h3 class="mb-16">{{ L('bank.add_title') }}</h3>
+  <form method="post" enctype="multipart/form-data" class="grid-2">
+    <div class="field mb-0">
+      <label>{{ L('bank.title_label') }} *</label>
+      <input type="text" name="title" required>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('bank.subject_label') }}</label>
+      <select name="subject">
+        <option value="">{{ L('bank.subject_any') }}</option>
+        {% for s in subjects %}
+          <option value="{{ s['name'] }}">{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('bank.stream_label') }}</label>
+      <select name="stream_id">
+        <option value="">{{ L('bank.all_streams') }}</option>
+        {% for s in streams %}
+          <option value="{{ s['id'] }}">{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('bank.curriculum_label') }}</label>
+      <select name="curriculum_id">
+        <option value="">{{ L('bank.all_curricula') }}</option>
+        {% for c in curricula %}
+          <option value="{{ c['id'] }}">{{ c['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('bank.stage_label') }}</label>
+      <select name="stage_id">
+        <option value="">{{ L('bank.all_stages') }}</option>
+        {% for s in stages %}
+          <option value="{{ s['id'] }}">{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('bank.term_label') }}</label>
+      <select name="term">
+        <option value="0">{{ L('bank.term_all') }}</option>
+        <option value="1">{{ L('bank.term_1') }}</option>
+        <option value="2">{{ L('bank.term_2') }}</option>
+      </select>
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('bank.year_label') }}</label>
+      <input type="number" name="year" min="2000" max="2100" value="{{ 2026 }}">
+    </div>
+    <div class="field mb-0">
+      <label>{{ L('bank.file_label') }} *</label>
+      <input type="file" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" required>
+      <p class="muted small">{{ L('bank.file_hint') }}</p>
+    </div>
+    <div class="field mb-0" style="grid-column:1 / -1;">
+      <label>{{ L('bank.desc_label') }}</label>
+      <textarea name="description" rows="2" placeholder="{{ L('bank.desc_ph') }}"></textarea>
+    </div>
+    <div style="grid-column:1 / -1;">
+      <button class="btn" type="submit">{{ L('bank.add_btn') }}</button>
+    </div>
+  </form>
+</div>
+
+<h3 class="mb-12">{{ L('bank.list_title') }}</h3>
+<div class="card">
+  {% if exams %}
+    {% for e in exams %}
+      <div class="flex-between" style="padding:10px 0; border-bottom:1px solid var(--border); gap:10px; flex-wrap:wrap;">
+        <div style="min-width:0;">
+          <div class="flex" style="gap:8px; flex-wrap:wrap;">
+            <strong>{{ e['title'] }}</strong>
+            {% if not e['is_published'] %}<span class="tag tag-neutral">{{ L('bank.hidden') }}</span>{% endif %}
+          </div>
+          <div class="muted small">
+            {{ e['subject'] or '—' }}
+            {% if e['stream_name'] %} · 🎯 {{ e['stream_name'] }}{% endif %}
+            {% if e['curriculum_name'] %} · {{ e['curriculum_name'] }}{% endif %}
+            · {{ e['stage_name'] or L('bank.all_stages') }}
+            {% if e['year'] %} · {{ e['year'] }}{% if e['term'] %} {{ L('bank.term_word').replace('{{ n }}', e['term']|string) }}{% endif %}{% endif %}
+            · ⬇ {{ e['downloads'] }}
+          </div>
+        </div>
+        <div class="flex" style="gap:6px;">
+          {% if e['created_by_type'] == 'teacher' and e['created_by_id'] == session['teacher_id'] %}
+            <form method="post" action="{{ url_for('teacher_exam_bank_delete', exam_id=e['id']) }}" onsubmit="return confirm('{{ L('bank.delete_confirm') }}');">
+              <button class="btn btn-danger btn-sm" type="submit">{{ L('bank.delete') }}</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty"><span class="empty-icon">📂</span><p>{{ L('bank.empty') }}</p></div>
+  {% endif %}
+</div>
+{% endblock %}

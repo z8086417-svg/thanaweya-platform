@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="breadcrumb" href="{{ url_for('student_teacher_view', teacher_id=teacher['id']) }}">{{ L('lesson.back_class').replace('{{ name }}', teacher['name']) }}</a>
+
+<div class="page-head flex-between">
+  <div>
+    <h1>{{ material['title'] }}</h1>
+    <p>
+      <span class="tag">{{ teacher['name'] }}</span>
+      <span class="tag tag-neutral">{{ material['curriculum_name'] }} · {{ material['stage_name'] }} · {{ material['subject'] }}</span>
+      {% if material['stream'] %}<span class="tag tag-accent">{{ material['stream'] }}</span>{% endif %}
+      {% if material['kind'] == 'فيديو' %}<span class="tag tag-info">{{ L('kind.video') }}</span>
+      {% elif material['kind'] == 'امتحان' %}<span class="tag tag-accent">{{ L('kind.exam') }}</span>
+      {% elif material['kind'] == 'واجب' %}<span class="tag">{{ L('kind.homework') }}</span>
+      {% else %}<span class="tag tag-neutral">{{ L('kind.text') }}</span>{% endif %}
+      {% if material['price'] > 0 %}<span class="tag tag-accent">{{ material['price']|int }} {{ L('teacher.egp') }}</span>{% else %}<span class="tag tag-success">{{ L('teacher.free') }}</span>{% endif %}
+    </p>
+    {% if avg_rating %}
+      <p class="muted small mb-0">{{ L('lesson.review_summary').replace('{{ rating }}', avg_rating|string).replace('{{ count }}', review_count|string) }}</p>
+    {% endif %}
+  </div>
+  {% if gift_credits > 0 %}
+    <span class="tag tag-accent" style="font-size:.9rem; padding:8px 16px;">{{ L('teacher.gift').replace('{{ n }}', gift_credits|string) }}</span>
+  {% endif %}
+</div>
+
+{% if expired %}
+  <div class="alert alert-error">{{ L('teacher.expired').replace('{{ days }}', material['access_days']|string) }}</div>
+{% endif %}
+{% if purchased and days_left %}
+  <div class="alert alert-info">{{ L('teacher.days_left').replace('{{ days }}', days_left|string) }}</div>
+{% endif %}
+
+{% if purchased %}
+  {% macro video_card(v, material_id) %}
+  <div class="video-card" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; background:var(--bg); border-radius:var(--radius-sm); margin-bottom:8px;">
+    <div style="flex:1; min-width:0;">
+      <strong>🎬 {{ v['title'] }}</strong>
+      {% if v['description'] %}<p class="muted small mb-0" style="margin-top:4px;">{{ v['description'] }}</p>{% endif %}
+    </div>
+    <button type="button" class="btn btn-secondary btn-sm open-video" data-title="{{ v['title'] }}" data-material-id="{{ material_id }}" {% if v['video_filename'] %}data-file="{{ v['video_filename'] }}"{% endif %} {% if v['video_url'] %}data-url="{{ v['video_url'] }}"{% endif %}>{{ L('lesson.open_video') }}</button>
+  </div>
+  {% endmacro %}
+
+  {% if chapters %}
+    {% for ch in chapters %}
+      {% set ch_videos = chapter_videos[ch['id']] %}
+      {% if ch_videos or ch['title'] %}
+        <div class="card" style="margin-bottom:16px;">
+          <div class="flex-between mb-12">
+            <h3 class="mb-0">🗂 {{ ch['title'] }}</h3>
+            {% if ch_videos %}<span class="tag tag-info">{{ ch_videos|length }} {{ L('lesson.video_count') }}</span>{% endif %}
+          </div>
+          {% for v in ch_videos %}
+            {{ video_card(v, material['id']) }}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endfor %}
+    {% if orphans %}
+      <div class="card" style="margin-bottom:16px;">
+        <h3 class="mb-0">{{ L('lesson.remaining_videos') }}</h3>
+        {% for v in orphans %}
+          {{ video_card(v, material['id']) }}
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% elif videos %}
+    {% for v in videos %}
+      <div class="card" style="margin-bottom:16px;">
+        <div class="flex-between mb-12">
+          <h3 class="mb-0">🎬 {{ v['title'] }}</h3>
+          <span class="tag tag-info">{{ loop.index }} / {{ videos|length }}</span>
+        </div>
+        {{ video_card(v, material['id']) }}
+      </div>
+    {% endfor %}
+  {% elif material['video_filename'] %}
+    <div class="card" style="margin-bottom:16px;">
+      <h3 class="mb-0">🎬 {{ material['title'] }}</h3>
+      <div class="video-card" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; background:var(--bg); border-radius:var(--radius-sm); margin-top:10px;">
+        <strong>{{ L('lesson.full_lecture') }}</strong>
+        <button type="button" class="btn btn-secondary btn-sm open-video" data-title="{{ material['title'] }}" data-material-id="{{ material['id'] }}" data-file="{{ material['video_filename'] }}">{{ L('lesson.open_video') }}</button>
+      </div>
+    </div>
+  {% elif material['video_url'] %}
+    <div class="card" style="margin-bottom:16px;">
+      <h3 class="mb-0">🎬 {{ material['title'] }}</h3>
+      <div class="video-card" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; background:var(--bg); border-radius:var(--radius-sm); margin-top:10px;">
+        <strong>{{ L('lesson.full_lecture') }}</strong>
+        <button type="button" class="btn btn-secondary btn-sm open-video" data-title="{{ material['title'] }}" data-material-id="{{ material['id'] }}" data-url="{{ material['video_url'] }}">{{ L('lesson.open_video') }}</button>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if assessments %}
+  <div class="card" style="margin-bottom:16px;">
+    <h3>{{ L('lesson.assessments_title') }}</h3>
+    {% for a in assessments %}
+      {% set att = my_attempts[a['id']] %}
+      <div class="flex-between" style="padding:10px 0; border-bottom:1px solid var(--border); gap:8px; flex-wrap:wrap;">
+        <div style="min-width:0;">
+          <strong>{% if a['kind'] == 'امتحان' %}📝{% else %}📔{% endif %} {{ a['title'] }}</strong>
+          <div class="muted small">
+            {% if a['kind'] == 'امتحان' %}{{ L('kind.exam') }}{% else %}{{ L('kind.homework') }}{% endif %} · {{ a['question_count'] }} {{ L('meta.questions_count') }} · {{ L('assessment.instant') }}
+            {% if att %} {{ L('lesson.last_attempt').replace('{{ score }}', att['score']|round(1)|string) }}{% else %} {{ L('lesson.not_attempted') }}{% endif %}
+          </div>
+        </div>
+        {% if att %}
+          <div class="flex" style="gap:6px;">
+            <a class="btn btn-secondary btn-sm" href="{{ url_for('student_assessment_result', assessment_id=a['id']) }}">{{ L('exams.result') }}</a>
+            <a class="btn btn-sm" href="{{ url_for('student_assessment', assessment_id=a['id']) }}">{{ L('assessment.retry') }}</a>
+          </div>
+        {% else %}
+          <a class="btn btn-sm" href="{{ url_for('student_assessment', assessment_id=a['id']) }}">{{ L('lesson.start_solve') }}</a>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card" style="margin-bottom:16px;">
+    <h3>{{ L('lesson.explanation') }}</h3>
+    <p class="lc-content" style="white-space:pre-wrap;">{{ material['content'] }}</p>
+  </div>
+
+  {% if material['kind'] == 'واجب' %}
+    <div class="card" style="margin-bottom:16px;">
+      <h3>{{ L('lesson.submit_homework_title') }}</h3>
+      {% if my_submission and my_submission['graded_at'] %}
+        <div class="card" style="background: var(--success-100); border:none; margin-top:10px;">
+          <p class="muted small mb-0">{{ L('homework.grade_label') }}</p>
+          <h3 style="margin:4px 0;">{{ my_submission['grade'] }}</h3>
+          {% if my_submission['feedback'] %}<p class="mb-0 small">{{ L('homework.teacher_feedback') }} {{ my_submission['feedback'] }}</p>{% endif %}
+        </div>
+      {% elif my_submission %}
+        <div class="alert alert-info">{{ L('lesson.homework_submitted_editable') }}</div>
+        <details class="collapsible">
+          <summary>✏️ {{ L('homework.edit_answer') }}</summary>
+          <div class="body">
+            <form method="post" action="{{ url_for('student_submit_homework', material_id=material['id']) }}">
+              <div class="field">
+                <label>{{ L('lesson.answer_edited') }}</label>
+                <textarea name="answer_text" rows="4" required>{{ my_submission['answer_text'] }}</textarea>
+              </div>
+              <button class="btn btn-secondary" type="submit">{{ L('lesson.submit_homework') }}</button>
+            </form>
+          </div>
+        </details>
+      {% else %}
+        <form method="post" action="{{ url_for('student_submit_homework', material_id=material['id']) }}">
+          <div class="field">
+            <label>{{ L('lesson.your_answer_label') }}</label>
+            <textarea name="answer_text" rows="4" required></textarea>
+          </div>
+          <button class="btn" type="submit">{{ L('lesson.submit_homework') }}</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if material['kind'] == 'امتحان' %}
+    <div class="card" style="margin-bottom:16px;">
+      <h3>{{ L('lesson.submit_exam_title') }}</h3>
+      {% if my_exam_submission and my_exam_submission['graded_at'] %}
+        <div class="card" style="background: var(--success-100); border:none; margin-top:10px;">
+          <p class="muted small mb-0">{{ L('homework.grade_label') }}</p>
+          <h3 style="margin:4px 0;">{{ my_exam_submission['grade'] }}</h3>
+          {% if my_exam_submission['feedback'] %}<p class="mb-0 small">{{ L('homework.teacher_feedback') }} {{ my_exam_submission['feedback'] }}</p>{% endif %}
+        </div>
+      {% elif my_exam_submission %}
+        <div class="alert alert-info">{{ L('lesson.exam_submitted_editable') }}</div>
+        <details class="collapsible">
+          <summary>✏️ {{ L('homework.edit_answer') }}</summary>
+          <div class="body">
+            <form method="post" action="{{ url_for('student_submit_exam', material_id=material['id']) }}">
+              <div class="field">
+                <label>{{ L('lesson.your_exam_answer') }}</label>
+                <textarea name="answer_text" rows="5" required>{{ my_exam_submission['answer_text'] }}</textarea>
+              </div>
+              <button class="btn btn-secondary" type="submit">{{ L('lesson.submit_answer') }}</button>
+            </form>
+          </div>
+        </details>
+      {% else %}
+        <form method="post" action="{{ url_for('student_submit_exam', material_id=material['id']) }}">
+          <div class="field">
+            <label>{{ L('lesson.your_exam_answer') }}</label>
+            <textarea name="answer_text" rows="5" placeholder="{{ L('lesson.answer_ph') }}" required></textarea>
+          </div>
+          <button class="btn" type="submit">{{ L('lesson.submit_exam_to_teacher') }}</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="card" style="margin-bottom:16px;">
+    <details class="collapsible">
+      <summary>{% if my_review %}{{ L('lesson.review_update') }}{% else %}{{ L('lesson.review_add') }}{% endif %}</summary>
+      <div class="body">
+        <form method="post" action="{{ url_for('student_review', material_id=material['id']) }}">
+          <div class="field">
+            <label>{{ L('lesson.rating_label') }}</label>
+            <select name="rating">
+              {% for n in [5,4,3,2,1] %}
+                <option value="{{ n }}" {% if my_review and my_review['rating']==n %}selected{% endif %}>{{ n }} ⭐</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>{{ L('lesson.comment_label') }}</label>
+            <input type="text" name="comment" value="{{ my_review['comment'] if my_review else '' }}" placeholder="{{ L('lesson.comment_ph') }}">
+          </div>
+          <button class="btn btn-secondary" type="submit">{% if my_review %}{{ L('lesson.review_update_btn') }}{% else %}{{ L('lesson.review_submit_btn') }}{% endif %}</button>
+        </form>
+      </div>
+    </details>
+  </div>
+
+  {% if material['price'] > 0 and gift_credits > 0 %}
+    <div class="card">
+      <details class="collapsible">
+        <summary>{{ L('lesson.gift_lesson_title').replace('{{ n }}', gift_credits|string) }}</summary>
+        <div class="body">
+          <form method="post" action="{{ url_for('student_gift_lesson', material_id=material['id']) }}" class="input-row">
+            <input type="text" name="friend_code" placeholder="{{ L('lesson.friend_code_ph') }}" required>
+            <button class="btn btn-secondary" type="submit">{{ L('lesson.send_gift') }}</button>
+          </form>
+        </div>
+      </details>
+    </div>
+  {% endif %}
+{% else %}
+  <div class="card">
+    <div class="empty">
+      {% if sequence_locked %}
+        <span class="empty-icon">🔒</span>
+        <p>{{ L('lesson.seq_locked_title').replace('{{ title }}', sequence_blocker['title']) }}</p>
+        <p class="muted small mb-0">{{ L('lesson.seq_hint') }}</p>
+        <a class="btn btn-secondary" href="{{ url_for('student_teacher_view', teacher_id=teacher['id']) }}">{{ L('lesson.back_class').replace('{{ name }}', teacher['name']) }}</a>
+      {% else %}
+        <span class="empty-icon">🔒</span>
+        <p>{{ L('teacher.locked_buy') }}</p>
+        <form method="post" action="{{ url_for('student_buy', material_id=material['id']) }}">
+          <button class="btn" type="submit">{{ L('teacher.buy').replace('{{ price }}', (material['price']|int)|string) }}</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+<div id="videoModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1000; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:var(--card); border-radius:16px; max-width:860px; width:100%; max-height:92vh; overflow:auto; padding:16px; position:relative;">
+    <div class="flex-between" style="margin-bottom:10px;">
+      <h3 class="mb-0" id="videoModalTitle" style="font-size:1rem;"></h3>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="closeVideoModal()">{{ L('lesson.close') }}</button>
+    </div>
+    <video id="modalVideo" controls preload="metadata" style="width:100%; border-radius:12px; background:#000;"></video>
+  </div>
+</div>
+
+<script>
+const teacherId = {{ teacher['id'] }};
+const VIDEO_FALLBACK = {{ L('lesson.video') | tojson }};
+
+setInterval(() => {
+  if (document.visibilityState === 'visible') {
+    fetch(`/student/heartbeat/${teacherId}`, { method: 'POST' }).catch(() => {});
+  }
+}, 60000);
+
+// مشغل الفيديو عند الضغطة (modal) + تتبع وقت المشاهدة
+const videoModal = document.getElementById('videoModal');
+const modalVideo = document.getElementById('modalVideo');
+const modalTitle = document.getElementById('videoModalTitle');
+let modalProgressAttached = false;
+
+function attachVideoProgress(video, materialId) {
+  if (modalProgressAttached) return;
+  modalProgressAttached = true;
+  let lastReportedTime = 0;
+
+  video.addEventListener('timeupdate', () => {
+    if (video.seeking) return;
+    const delta = video.currentTime - lastReportedTime;
+    if (delta >= 10) {
+      lastReportedTime = video.currentTime;
+      fetch(`/student/video-progress/${materialId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seconds: delta }),
+      }).catch(() => {});
+    }
+  });
+
+  const reportRemainder = () => {
+    const delta = video.currentTime - lastReportedTime;
+    if (delta > 0) {
+      lastReportedTime = video.currentTime;
+      fetch(`/student/video-progress/${materialId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seconds: delta }),
+      }).catch(() => {});
+    }
+  };
+  video.addEventListener('pause', reportRemainder);
+  video.addEventListener('ended', reportRemainder);
+}
+
+function openVideoModal(btn) {
+  const file = btn.dataset.file;
+  const url = btn.dataset.url;
+  modalTitle.textContent = '🎬 ' + (btn.dataset.title || VIDEO_FALLBACK);
+  if (file) {
+    modalVideo.src = `/uploads/videos/${file}`;
+    modalVideo.style.display = 'block';
+    modalVideo.load();
+    attachVideoProgress(modalVideo, btn.dataset.materialId);
+    videoModal.style.display = 'flex';
+    modalVideo.play().catch(() => {});
+  } else if (url) {
+    window.open(url, '_blank', 'noopener');
+  }
+}
+
+function closeVideoModal() {
+  modalVideo.pause();
+  modalVideo.removeAttribute('src');
+  modalVideo.style.display = 'none';
+  videoModal.style.display = 'none';
+}
+
+document.querySelectorAll('.open-video').forEach((btn) => {
+  btn.addEventListener('click', () => openVideoModal(btn));
+});
+videoModal.addEventListener('click', (e) => {
+  if (e.target === videoModal) closeVideoModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeVideoModal();
+});
+</script>
+{% endblock %}

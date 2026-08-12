@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ L('parent.report_title') }} — {{ me['name'] }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+    color: #1f2430;
+    background: #f0f2f7;
+    padding: 24px;
+  }
+
+  .paper {
+    max-width: 820px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid #e3e6ee;
+    border-top: 6px solid #4C1D95;
+    border-radius: 14px;
+    padding: 36px 42px;
+    box-shadow: 0 8px 30px rgba(30, 30, 60, .12);
+  }
+
+  .paper-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 2px solid #eceff5;
+    padding-bottom: 18px;
+    margin-bottom: 20px;
+  }
+
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand svg { width: 46px; height: 46px; }
+  .brand .bname { font-size: 1.35rem; font-weight: 800; color: #4C1D95; line-height: 1.2; }
+  .brand .bsub { font-size: .8rem; color: #7a8294; font-weight: 600; }
+
+  .report-id {
+    font-size: .78rem;
+    color: #7a8294;
+    background: #f4f5fa;
+    border: 1px dashed #cfd4e2;
+    border-radius: 8px;
+    padding: 6px 12px;
+    text-align: center;
+  }
+  .report-id strong { display: block; color: #1f2430; font-size: .9rem; }
+
+  .doc-title {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #141a2b;
+    margin: 4px 0 2px;
+  }
+  .doc-sub { text-align: center; color: #7a8294; font-size: .85rem; margin-bottom: 20px; }
+
+  .info-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 24px;
+    background: #fafbfd;
+    border: 1px solid #e9ecf3;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 22px;
+  }
+  .info-item { display: flex; gap: 8px; font-size: .92rem; }
+  .info-item .k { color: #7a8294; min-width: 92px; font-weight: 600; }
+  .info-item .v { font-weight: 700; color: #1f2430; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .stat {
+    text-align: center;
+    border: 1px solid #e9ecf3;
+    border-radius: 12px;
+    padding: 14px 8px;
+    background: #fafbfd;
+  }
+  .stat .num { font-size: 1.5rem; font-weight: 800; color: #4C1D95; }
+  .stat .lab { font-size: .78rem; color: #7a8294; font-weight: 600; margin-top: 4px; }
+
+  h2.sec {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #4C1D95;
+    margin: 20px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #eceff5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .85rem;
+    margin-bottom: 6px;
+  }
+  th {
+    background: #4C1D95;
+    color: #fff;
+    font-weight: 700;
+    padding: 8px 10px;
+    text-align: right;
+  }
+  th:first-child { border-radius: 8px 0 0 0; }
+  th:last-child { border-radius: 0 8px 0 0; }
+  td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #f0f1f6;
+  }
+  tr:nth-child(even) td { background: #fafbfd; }
+
+  .foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    margin-top: 30px;
+    padding-top: 18px;
+    border-top: 2px solid #eceff5;
+  }
+  .sign { text-align: center; font-size: .8rem; color: #7a8294; }
+  .sign .line { width: 150px; height: 1px; background: #cfd4e2; margin: 26px 0 6px; }
+
+  .support {
+    text-align: center;
+    margin-top: 16px;
+    font-size: .82rem;
+    color: #7a8294;
+  }
+  .support strong { color: #4C1D95; }
+
+  .empty-line { color: #a6adbd; text-align: center; padding: 14px; font-size: .85rem; }
+
+  .no-print { text-align: center; margin: 18px auto 0; max-width: 820px; }
+  .no-print .btn {
+    display: inline-block;
+    font-family: 'Cairo', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    background: #4C1D95;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 26px;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(76, 29, 149, .35);
+  }
+  .no-print .btn:hover { background: #3b1677; }
+  .no-print .btn.ghost { background: #fff; color: #4C1D95; border: 1px solid #4C1D95; margin-right: 10px; box-shadow: none; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .paper { box-shadow: none; border: none; border-radius: 0; max-width: 100%; padding: 0; border-top: none; }
+    .no-print { display: none !important; }
+    @page { size: A4; margin: 14mm 12mm; }
+  }
+
+  @media (max-width: 640px) {
+    .paper { padding: 22px 18px; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .info-box { grid-template-columns: 1fr; }
+    .paper-head { flex-direction: column; align-items: flex-start; }
+    .foot { flex-direction: column; align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="paper">
+  <div class="paper-head">
+    <div class="brand">
+      <svg viewBox="0 0 90 90" aria-hidden="true">
+        <rect width="90" height="90" rx="20" fill="#4C1D95"/>
+        <rect x="18" y="52" width="12" height="20" rx="6" fill="#fff" opacity="0.55"/>
+        <rect x="39" y="40" width="12" height="32" rx="6" fill="#fff" opacity="0.78"/>
+        <rect x="60" y="28" width="12" height="44" rx="6" fill="#fff"/>
+      </svg>
+      <div>
+        <div class="bname">SENIORS</div>
+        <div class="bsub">{{ L('chrome.brand') }} · {{ L('parent.report_period') }}</div>
+      </div>
+    </div>
+    <div class="report-id">
+      {{ L('parent.report_id') }}
+      <strong dir="ltr">{{ me['account_code'] }}</strong>
+    </div>
+  </div>
+
+  <h1 class="doc-title">{{ L('parent.report_title') }}</h1>
+  <p class="doc-sub">{{ L('parent.report_sub').replace('{{ date }}', today) }}</p>
+
+  <div class="info-box">
+    <div class="info-item"><span class="k">{{ L('parent.pdf_student') }}</span><span class="v">{{ me['name'] }}</span></div>
+    <div class="info-item"><span class="k">{{ L('parent.pdf_code') }}</span><span class="v" dir="ltr">{{ me['account_code'] }}</span></div>
+    {% if me['study_system'] %}<div class="info-item"><span class="k">{{ L('parent.pdf_system') }}</span><span class="v">{{ me['study_system'] }}</span></div>{% endif %}
+    {% if me['stream'] %}<div class="info-item"><span class="k">{{ L('parent.pdf_stream') }}</span><span class="v">{{ me['stream'] }}</span></div>{% endif %}
+    <div class="info-item"><span class="k">{{ L('parent.pdf_parent') }}</span><span class="v">{{ me['parent_name'] or me['name'] }}</span></div>
+    <div class="info-item"><span class="k">{{ L('parent.pdf_phone') }}</span><span class="v" dir="ltr">{{ me['parent_phone'] }}</span></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat"><div class="num">{{ '%.1f'|format(week_hours) }}</div><div class="lab">{{ L('parent.stat_week_title') }}</div></div>
+    <div class="stat"><div class="num">{{ '%.1f'|format(total_hours) }}</div><div class="lab">{{ L('parent.stat_total_title') }}</div></div>
+    <div class="stat"><div class="num">{{ subscribed_teachers }}</div><div class="lab">{{ L('parent.stat_teachers_title') }}</div></div>
+    <div class="stat"><div class="num">{{ completed }} / {{ purchases|length }}</div><div class="lab">{{ L('parent.stat_done_title') }}</div></div>
+  </div>
+
+  <h2 class="sec">📚 {{ L('parent.pdf_study_title') }}</h2>
+  {% if study_by_teacher %}
+  <table>
+    <thead><tr><th>{{ L('parent.col_teacher') }}</th><th>{{ L('parent.col_minutes') }}</th></tr></thead>
+    <tbody>
+    {% for row in study_by_teacher %}
+      <tr><td>{{ row['teacher_name'] }}</td><td>{{ row['minutes']|round(0)|int }} {{ L('parent.minutes') }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="empty-line">{{ L('parent.study_empty') }}</div>
+  {% endif %}
+
+  <h2 class="sec">🛒 {{ L('parent.pdf_purchases_title') }}</h2>
+  {% if purchases %}
+  <table>
+    <thead><tr><th>{{ L('parent.col_lesson') }}</th><th>{{ L('parent.col_teacher') }}</th><th>{{ L('parent.col_date') }}</th><th>{{ L('parent.col_amount') }}</th></tr></thead>
+    <tbody>
+    {% for p in purchases %}
+      <tr>
+        <td>{{ p['material_title'] }}</td>
+        <td>{{ p['teacher_name'] }}</td>
+        <td>{{ p['purchased_at'][:10] }}</td>
+        <td>{{ p['amount']|int }} {{ L('account.egp_short') }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="empty-line">{{ L('parent.purchases_empty') }}</div>
+  {% endif %}
+
+  <h2 class="sec">📝 {{ L('parent.pdf_results_title') }}</h2>
+  {% set graded = graded_homework + graded_exams %}
+  {% if assessment_results or graded %}
+    <table>
+      <thead><tr><th>{{ L('parent.col_exam') }}</th><th>{{ L('parent.col_score') }}</th><th>{{ L('parent.col_date') }}</th></tr></thead>
+      <tbody>
+      {% for r in assessment_results %}
+        <tr><td>{{ r['title'] }}</td><td>{{ r['score']|round(0)|int }}%</td><td>{{ r['submitted_at'][:10] }}</td></tr>
+      {% endfor %}
+      {% for g in graded %}
+        <tr><td>{{ g['material_title'] }}</td><td>{{ g['grade'] }}{% if g['feedback'] %} — {{ g['feedback'] }}{% endif %}</td><td>{{ g['submitted_at'][:10] }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-line">{{ L('parent.graded_empty') }}</div>
+  {% endif %}
+
+  <div class="foot">
+    <div class="sign">{{ L('parent.pdf_sign') }}<div class="line"></div>{{ L('parent.pdf_guardian') }}</div>
+    <div class="sign">{{ L('parent.pdf_sign') }}<div class="line"></div>{{ L('parent.pdf_platform') }}</div>
+  </div>
+
+  <div class="support">
+    {{ L('parent.support_label') }} <strong dir="ltr">{{ support_phone }}</strong>
+  </div>
+</div>
+
+<div class="no-print">
+  <button type="button" class="btn" onclick="window.print()">🖨️ {{ L('parent.pdf_download') }}</button>
+  <a class="btn ghost" href="{{ url_for('admin_dashboard', tab='reports') }}">{{ L('action.back_home') }}</a>
+</div>
+
+<script>
+  window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 500); });
+</script>
+</body>
+</html>

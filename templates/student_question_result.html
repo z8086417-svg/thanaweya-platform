@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head flex-between">
+  <div>
+    <h1>✅ {{ L('qb.result_title') }}</h1>
+    <p>{{ L('qb.result_subtitle').replace('{{ date }}', daily_set['set_date']) }}</p>
+  </div>
+  <div class="flex" style="gap:8px;">
+    <a class="btn btn-ghost" href="{{ url_for('student_question_bank') }}">{{ L('qb.back_bank') }}</a>
+  </div>
+</div>
+
+<div class="card score-card" style="margin-bottom:18px;">
+  <div class="score-row">
+    <div class="score-box">
+      <div class="score-num">{{ daily_set['score'] }} / {{ daily_set['total'] }}</div>
+      <div class="score-label">{{ L('qb.score') }}</div>
+    </div>
+    <div class="score-box">
+      <div class="score-num pct">{{ (daily_set['score'] * 100 / daily_set['total']) if daily_set['total'] else 0 }}%</div>
+      <div class="score-label">{{ L('qb.percent') }}</div>
+    </div>
+    <div class="score-msg">
+      {% set pct = (daily_set['score'] * 100 / daily_set['total']) if daily_set['total'] else 0 %}
+      {% if pct >= 80 %}<span class="emoji-big">🏆</span><strong>{{ L('qb.msg_great') }}</strong>
+      {% elif pct >= 50 %}<span class="emoji-big">💪</span><strong>{{ L('qb.msg_good') }}</strong>
+      {% else %}<span class="emoji-big">📚</span><strong>{{ L('qb.msg_more') }}</strong>{% endif %}
+    </div>
+  </div>
+</div>
+
+{% for q in questions %}
+  {% set letters = ['أ', 'ب', 'ج', 'د'] %}
+  <div class="card result-card {% if q['is_correct'] %}card-correct{% else %}card-wrong{% endif %}" style="margin-bottom:14px;">
+    <div class="flex-between mb-8" style="gap:8px; flex-wrap:wrap;">
+      <div class="flex" style="gap:8px; flex-wrap:wrap;">
+        <span class="tag tag-info">{{ q['subject_name'] or L('bank.subject_any') }}</span>
+        {% if q['stage_name'] %}<span class="tag tag-neutral">{{ q['stage_name'] }}</span>{% endif %}
+        {% if q['stream_name'] %}<span class="tag tag-accent">{{ q['stream_name'] }}</span>{% endif %}
+        <span class="muted small">#{{ loop.index }}</span>
+      </div>
+      <span class="result-badge {% if q['is_correct'] %}badge-correct{% else %}badge-wrong{% endif %}">
+        {% if q['is_correct'] %}✔️ {{ L('qb.correct') }}{% else %}✖️ {{ L('qb.wrong') }}{% endif %}
+      </span>
+    </div>
+    <p class="mb-10"><strong>{{ q['question_text'] }}</strong></p>
+    <div class="options-list">
+      {% for i in [0,1,2,3] %}
+        {% set opt = q['option_a'] if i == 0 else (q['option_b'] if i == 1 else (q['option_c'] if i == 2 else q['option_d'])) %}
+        {% if opt %}
+          <div class="answer-line
+            {% if i == q['correct_index'] %}line-correct{% endif %}
+            {% if i == q['answer_index'] and i != q['correct_index'] %}line-wrong{% endif %}">
+            <span class="option-label">{{ letters[i] }}.</span>
+            <span>{{ opt }}</span>
+            {% if i == q['correct_index'] %}<span class="line-mark">✔️ {{ L('qb.right_answer') }}</span>{% endif %}
+            {% if i == q['answer_index'] and i != q['correct_index'] %}<span class="line-mark">✖️ {{ L('qb.your_answer') }}</span>{% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% if q['explanation'] %}
+      <div class="explain-box">💡 <strong>{{ L('qb.explain') }}:</strong> {{ q['explanation'] }}</div>
+    {% endif %}
+    {% if not q['answer_index'] and q['answer_index'] != 0 %}
+      <div class="muted small mt-8">{{ L('qb.not_answered') }}</div>
+    {% endif %}
+  </div>
+{% endfor %}
+
+<style>
+  .score-row { display:flex; gap:24px; align-items:center; flex-wrap:wrap; }
+  .score-box { text-align:center; min-width:110px; }
+  .score-num { font-size:2rem; font-weight:800; color: var(--primary,#4C1D95); }
+  .score-num.pct { color: var(--success,#15803d); }
+  .score-label { font-size:.85rem; color:#7a8294; }
+  .score-msg { display:flex; align-items:center; gap:10px; }
+  .emoji-big { font-size:2.2rem; }
+  .result-badge { font-weight:800; padding:3px 12px; border-radius:20px; font-size:.85rem; }
+  .badge-correct { background:rgba(21,128,61,.12); color:var(--success,#15803d); }
+  .badge-wrong { background:rgba(220,38,38,.12); color:var(--danger,#dc2626); }
+  .options-list { display:flex; flex-direction:column; gap:6px; }
+  .answer-line { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:8px; border:1px solid var(--border,#e3e6ee); }
+  .answer-line .option-label { font-weight:800; color:#7a8294; }
+  .answer-line.line-correct { border-color:var(--success,#15803d); background:rgba(21,128,61,.08); }
+  .answer-line.line-correct .option-label { color:var(--success,#15803d); }
+  .answer-line.line-wrong { border-color:var(--danger,#dc2626); background:rgba(220,38,38,.08); }
+  .answer-line.line-wrong .option-label { color:var(--danger,#dc2626); }
+  .line-mark { margin-inline-start:auto; font-size:.8rem; font-weight:800; }
+  .line-correct .line-mark { color:var(--success,#15803d); }
+  .line-wrong .line-mark { color:var(--danger,#dc2626); }
+  .explain-box { margin-top:10px; background:#f4f5fa; border-radius:8px; padding:10px 12px; font-size:.9rem; color:#374151; }
+</style>
+{% endblock %}

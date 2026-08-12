@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="landing">
+
+  <section class="hero">
+    <div class="hero-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+    <div class="hero-badge">{{ L('home.badge') }}</div>
+    <h1>{{ L('home.title') }}</h1>
+    <p class="hero-sub">{{ L('home.subtitle') }}</p>
+
+    <div class="hero-actions">
+      <a class="btn btn-lg" href="{{ url_for('login') }}">{{ L('home.cta_login') }}</a>
+      <a class="btn btn-lg btn-secondary" href="{{ url_for('student_register') }}">{{ L('home.cta_register') }}</a>
+    </div>
+
+    <div class="hero-trust">
+      <span><span class="ht-icon">✅</span>{{ L('home.trust1') }}</span>
+      <span><span class="ht-icon">📝</span>{{ L('home.trust2') }}</span>
+      <span><span class="ht-icon">📈</span>{{ L('home.trust3') }}</span>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="features-head">
+      <h2>{{ L('home.features_title') }}</h2>
+      <p>{{ L('home.features_sub') }}</p>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="fc-icon" style="background: var(--primary-100); color: var(--primary-text);">🧑‍🏫</div>
+        <h3>{{ L('home.feature1_t') }}</h3>
+        <p>{{ L('home.feature1_d') }}</p>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon" style="background: var(--info-100); color: var(--tint-info);">📚</div>
+        <h3>{{ L('home.feature2_t') }}</h3>
+        <p>{{ L('home.feature2_d') }}</p>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon" style="background: var(--success-100); color: var(--tint-success);">📊</div>
+        <h3>{{ L('home.feature3_t') }}</h3>
+        <p>{{ L('home.feature3_d') }}</p>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon" style="background: var(--accent-100); color: var(--tint-accent);">🏆</div>
+        <h3>{{ L('home.feature4_t') }}</h3>
+        <p>{{ L('home.feature4_d') }}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="start-band">
+    <h2>{{ L('home.start_title') }}</h2>
+    <p>{{ L('home.start_sub') }}</p>
+
+    <div class="role-grid">
+      <a class="role-card" href="{{ url_for('login') }}">
+        <div class="rc-icon rc-icon-primary">🎓</div>
+        <h3>{{ L('home.login_title') }}</h3>
+        <p>{{ L('home.login_desc') }}</p>
+        <div class="rc-cta"><span class="btn btn-block">{{ L('action.login') }}</span></div>
+      </a>
+
+      <a class="role-card" href="{{ url_for('student_register') }}">
+        <div class="rc-icon rc-icon-success">📝</div>
+        <h3>{{ L('home.register_title') }}</h3>
+        <p>{{ L('home.register_desc') }}</p>
+        <div class="rc-cta"><span class="btn btn-block btn-success">{{ L('home.register_cta') }}</span></div>
+      </a>
+
+      <a class="role-card" href="{{ url_for('parent_login') }}">
+        <div class="rc-icon rc-icon-accent">👨‍👩‍👧</div>
+        <h3>{{ L('parent.login_title') }}</h3>
+        <p>{{ L('parent.login_sub') }}</p>
+        <div class="rc-cta"><span class="btn btn-block btn-ghost">{{ L('parent.login_btn') }}</span></div>
+      </a>
+    </div>
+  </section>
+
+</div>
+{% endblock %}

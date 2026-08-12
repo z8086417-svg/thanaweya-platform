@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ L('goals.title') }}</h1>
+  <p>
+    {{ L('goals.subtitle') }}
+    <span class="tag tag-accent">🔥 {{ L('goals.streak').replace('{{ n }}', streak|string) }}</span>
+  </p>
+</div>
+
+{% set tgt = today_target if today_target else 0 %}
+<div class="card" style="margin-bottom:18px;">
+  <h3 class="mb-16">{{ L('goals.set_title') }}</h3>
+  <form method="post" action="{{ url_for('student_goals_set') }}">
+    <input type="hidden" name="goal_date" value="{{ today }}">
+    <div class="grid-2">
+      <div class="field mb-0">
+        <label>{{ L('goals.target_label') }}</label>
+        <div class="flex" style="gap:8px;">
+          <input type="number" name="target_minutes" min="1" max="1440" value="{{ tgt if tgt else 60 }}" required>
+          <span class="muted small" style="align-self:center;">{{ L('goals.min') }}</span>
+        </div>
+      </div>
+      <div class="field mb-0">
+        <label>{{ L('goals.note_label') }}</label>
+        <input type="text" name="note" maxlength="200" value="{{ today_note }}" placeholder="{{ L('goals.note_ph') }}">
+      </div>
+    </div>
+    <button class="btn btn-primary" type="submit" style="margin-top:14px;">{{ L('goals.save_btn') }}</button>
+  </form>
+
+  <div class="flex-between" style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border); gap:10px; flex-wrap:wrap;">
+    <strong>{{ L('goals.progress_today') }}</strong>
+    <div style="flex:1; min-width:140px;">
+      {% if tgt %}
+        <div class="progress"><div style="width: {{ (today_minutes / tgt * 100) if tgt else 0 }}%;"></div></div>
+      {% else %}
+        <div class="progress"><div style="width:0%;"></div></div>
+      {% endif %}
+    </div>
+    <span class="tag {{ 'tag-success' if tgt and today_minutes >= tgt else 'tag-neutral' }}">
+      {{ today_minutes|int }} / {{ tgt }} {{ L('goals.min') }}
+    </span>
+  </div>
+</div>
+
+<h3 class="mb-12">{{ L('goals.week_title') }}</h3>
+<div class="card">
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:10px;">
+    {% for d in week %}
+      <div class="{{ 'goal-day-today' if d['is_today'] else 'goal-day' }}">
+        <div class="flex-between" style="gap:4px;">
+          <strong style="font-size:.82rem;">{{ d['label'] }}</strong>
+          {% if d['achieved'] %}<span class="tag tag-success" title="{{ L('goals.achieved') }}">✓</span>
+          {% elif d['target_minutes'] %}<span class="tag tag-neutral" title="{{ L('goals.missed') }}">–</span>{% endif %}
+        </div>
+        <div class="muted small">{{ d['date'] }}</div>
+        <div style="margin-top:8px; font-weight:600;">
+          {% if d['target_minutes'] %}
+            {{ d['minutes']|int }} / {{ d['target_minutes'] }} <span class="muted small">{{ L('goals.min') }}</span>
+          {% else %}
+            <span class="muted small">{{ L('goals.no_target') }}</span>
+          {% endif %}
+        </div>
+        {% if d['target_minutes'] %}
+          <div class="progress" style="margin-top:8px;"><div style="width: {{ (d['minutes'] / d['target_minutes'] * 100) if d['target_minutes'] else 0 }}%;"></div></div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

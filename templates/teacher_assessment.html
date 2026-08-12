@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block content %}
+{% set OPT_LETTERS = L('assessment.option_letters') %}
+<a class="breadcrumb" href="{{ url_for('teacher_dashboard', teacher_id=teacher['id']) }}">{{ L('tassess.back') }}</a>
+
+<div class="page-head">
+  <h1>{{ L('tassess.title').replace('{{ title }}', material['title']) }}</h1>
+  <p>{{ L('tassess.sub') }}</p>
+</div>
+
+{% for a in assessments %}
+<div class="card" style="margin-bottom:16px;">
+  <div class="flex-between mb-12">
+    <h3 class="mb-0">
+      {% if a['kind'] == 'امتحان' %}📝{% else %}📔{% endif %} {{ a['title'] }}
+      <span class="tag {{ 'tag-accent' if a['kind'] == 'امتحان' else '' }}">{% if a['kind'] == 'امتحان' %}{{ L('kind.exam') }}{% else %}{{ L('kind.homework') }}{% endif %}</span>
+    </h3>
+    <div class="flex" style="gap:8px; flex-wrap:wrap;">
+      <span class="tag tag-info">{{ L('tassess.questions_tag').replace('{{ n }}', a['question_count']|string) }}</span>
+      <span class="tag">{{ L('tassess.attempts_tag').replace('{{ n }}', a['attempt_count']|string) }}</span>
+      {% if a['attempt_count'] %}<span class="tag tag-success">{{ L('tassess.avg_score').replace('{{ score }}', a['avg_score']|round(1)|string) }}</span>{% endif %}
+    </div>
+  </div>
+
+  {% if a['attempt_count'] %}
+  <form method="post" action="{{ url_for('teacher_send_grades', teacher_id=teacher['id'], material_id=material['id']) }}" style="margin-bottom:10px;">
+    <input type="hidden" name="assessment_id" value="{{ a['id'] }}">
+    <button class="btn btn-secondary btn-sm" type="submit">{{ L('tassess.send_grades') }}</button>
+  </form>
+  {% endif %}
+
+  {% set a_questions = questions | selectattr('assessment_id', 'equalto', a['id']) | list %}
+  <details class="collapsible" style="margin-bottom:10px;">
+    <summary>{{ L('tassess.show_questions').replace('{{ n }}', a_questions|length|string) }}</summary>
+    <div class="body">
+      {% for q in a_questions %}
+      <div style="padding:10px 0; border-bottom:1px solid var(--border);">
+        <strong>{{ loop.index }}. {{ q['question_text'] }}</strong>
+        {% for letter, opt in [('أ', q['option_a']), ('ب', q['option_b']), ('ج', q['option_c']), ('د', q['option_d'])] %}
+          {% if opt %}
+            <div class="muted small" {% if loop.index0 == q['correct_index'] %}style="color:var(--success); font-weight:bold;"{% endif %}>
+              {{ OPT_LETTERS[letter] }}. {{ opt }}{% if loop.index0 == q['correct_index'] %} ✅{% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+        {% if q['explain_video'] or q['explain_url'] %}
+          <span class="tag tag-accent">{{ L('tassess.has_explain') }}</span>
+        {% endif %}
+      </div>
+      {% else %}
+        <div class="muted small">{{ L('tassess.no_questions') }}</div>
+      {% endfor %}
+    </div>
+  </details>
+
+  <details class="collapsible">
+    <summary>{{ L('tassess.add_questions') }}</summary>
+    <div class="body">
+      <form method="post" action="{{ url_for('teacher_add_assessment_questions', teacher_id=teacher['id'], material_id=material['id']) }}" enctype="multipart/form-data">
+        <input type="hidden" name="assessment_id" value="{{ a['id'] }}">
+        <div class="qs-container" data-prefix="aq">
+          <div class="q-row" style="padding:12px; margin-bottom:10px; border:1px solid var(--border); border-radius:var(--radius-sm);">
+            <div class="flex-between" style="margin-bottom:8px;">
+              <strong style="font-size:.85rem;">{{ L('tassess.q_number').replace('{{ n }}', '1') }}</strong>
+              <button type="button" class="btn btn-ghost btn-sm remove-q-row hide">🗑</button>
+            </div>
+            <div class="field mb-0">
+              <input type="text" name="aq_q_texts" placeholder="{{ L('tassess.q_text_ph') }}" style="width:100%;">
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0;">
+              <input type="text" name="aq_q_a" placeholder="{{ L('tassess.q_opt_a') }}">
+              <input type="text" name="aq_q_b" placeholder="{{ L('tassess.q_opt_b') }}">
+              <input type="text" name="aq_q_c" placeholder="{{ L('tassess.q_opt_c') }}">
+              <input type="text" name="aq_q_d" placeholder="{{ L('tassess.q_opt_d') }}">
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+              <label class="hint mb-0">{{ L('tassess.q_correct') }}</label>
+              <select name="aq_q_correct">
+                <option value="0">{{ OPT_LETTERS['أ'] }}</option>
+                <option value="1">{{ OPT_LETTERS['ب'] }}</option>
+                <option value="2">{{ OPT_LETTERS['ج'] }}</option>
+                <option value="3">{{ OPT_LETTERS['د'] }}</option>
+              </select>
+              <input type="file" name="aq_q_videos" accept="video/mp4,video/webm,video/quicktime" title="{{ L('tassess.q_video_title') }}">
+              <input type="url" name="aq_q_urls" placeholder="{{ L('tassess.q_url_ph') }}" style="flex:1; min-width:160px;">
+            </div>
+          </div>
+        </div>
+        <div class="flex" style="gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-secondary btn-sm add-q-row" data-prefix="aq">{{ L('tassess.add_q_btn') }}</button>
+          <button class="btn btn-secondary btn-sm" type="submit">{{ L('tassess.save_questions') }}</button>
+        </div>
+      </form>
+    </div>
+  </details>
+</div>
+{% else %}
+<div class="card"><div class="empty"><span class="empty-icon">📝</span><p>{{ L('tassess.empty') }}</p></div></div>
+{% endfor %}
+
+<div class="card">
+  <h3>{{ L('tassess.new_title') }}</h3>
+  <p class="hint">{{ L('tassess.new_hint') }}</p>
+  <form method="post" action="{{ url_for('teacher_add_assessment', teacher_id=teacher['id'], material_id=material['id']) }}" enctype="multipart/form-data">
+    <div class="grid-2" style="gap:10px;">
+      <div class="field mb-0">
+        <label>{{ L('tassess.kind_label') }}</label>
+        <select name="kind">
+          <option value="امتحان">📝 {{ L('kind.exam') }}</option>
+          <option value="واجب">📔 {{ L('kind.homework') }}</option>
+        </select>
+      </div>
+      <div class="field mb-0">
+        <label>{{ L('tassess.name_label') }}</label>
+        <input type="text" name="title" placeholder="{{ L('tassess.title_ph') }}">
+      </div>
+    </div>
+    <div class="qs-container" data-prefix="add" style="margin-top:12px;">
+      <div class="q-row" style="padding:12px; margin-bottom:10px; border:1px solid var(--border); border-radius:var(--radius-sm);">
+        <div class="flex-between" style="margin-bottom:8px;">
+          <strong style="font-size:.85rem;">{{ L('tassess.q_number').replace('{{ n }}', '1') }}</strong>
+          <button type="button" class="btn btn-ghost btn-sm remove-q-row hide">🗑</button>
+        </div>
+        <div class="field mb-0">
+          <input type="text" name="add_q_texts" placeholder="{{ L('tassess.q_text_ph') }}" style="width:100%;">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0;">
+          <input type="text" name="add_q_a" placeholder="{{ L('tassess.q_opt_a') }}">
+          <input type="text" name="add_q_b" placeholder="{{ L('tassess.q_opt_b') }}">
+          <input type="text" name="add_q_c" placeholder="{{ L('tassess.q_opt_c') }}">
+          <input type="text" name="add_q_d" placeholder="{{ L('tassess.q_opt_d') }}">
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <label class="hint mb-0">{{ L('tassess.q_correct') }}</label>
+          <select name="add_q_correct">
+            <option value="0">{{ OPT_LETTERS['أ'] }}</option>
+            <option value="1">{{ OPT_LETTERS['ب'] }}</option>
+            <option value="2">{{ OPT_LETTERS['ج'] }}</option>
+            <option value="3">{{ OPT_LETTERS['د'] }}</option>
+          </select>
+          <input type="file" name="add_q_videos" accept="video/mp4,video/webm,video/quicktime" title="{{ L('tassess.q_video_title') }}">
+          <input type="url" name="add_q_urls" placeholder="{{ L('tassess.q_url_ph') }}" style="flex:1; min-width:160px;">
+        </div>
+      </div>
+    </div>
+    <div class="flex" style="gap:8px; flex-wrap:wrap; margin-top:12px;">
+      <button type="button" class="btn btn-secondary btn-sm add-q-row" data-prefix="add">{{ L('tassess.add_q_btn') }}</button>
+      <button class="btn btn-lg" type="submit">{{ L('tassess.save_assess') }}</button>
+    </div>
+  </form>
+</div>
+
+<script>
+const MAX_QUESTIONS = 56;
+const TEXTS = {
+  qNumber: {{ L('tassess.q_number') | tojson }},
+  qTextPh: {{ L('tassess.q_text_ph') | tojson }},
+  qOptA: {{ L('tassess.q_opt_a') | tojson }},
+  qOptB: {{ L('tassess.q_opt_b') | tojson }},
+  qOptC: {{ L('tassess.q_opt_c') | tojson }},
+  qOptD: {{ L('tassess.q_opt_d') | tojson }},
+  qCorrect: {{ L('tassess.q_correct') | tojson }},
+  qVideoTitle: {{ L('tassess.q_video_title') | tojson }},
+  qUrlPh: {{ L('tassess.q_url_ph') | tojson }},
+  letters: {{ L('tassess.letters') | tojson }},
+  alertMax: {{ L('tassess.alert_max') | tojson }}
+};
+function makeQ(prefix, index) {
+  const row = document.createElement('div');
+  row.className = 'q-row';
+  row.style.cssText = 'padding:12px; margin-bottom:10px; border:1px solid var(--border); border-radius:var(--radius-sm);';
+  row.innerHTML =
+    '<div class="flex-between" style="margin-bottom:8px;">' +
+      '<strong style="font-size:.85rem;">' + TEXTS.qNumber.replace('{{ n }}', index + 1) + '</strong>' +
+      '<button type="button" class="btn btn-ghost btn-sm remove-q-row">🗑</button>' +
+    '</div>' +
+    '<div class="field mb-0"><input type="text" name="' + prefix + '_q_texts" placeholder="' + TEXTS.qTextPh + '" style="width:100%;"></div>' +
+    '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0;">' +
+      '<input type="text" name="' + prefix + '_q_a" placeholder="' + TEXTS.qOptA + '">' +
+      '<input type="text" name="' + prefix + '_q_b" placeholder="' + TEXTS.qOptB + '">' +
+      '<input type="text" name="' + prefix + '_q_c" placeholder="' + TEXTS.qOptC + '">' +
+      '<input type="text" name="' + prefix + '_q_d" placeholder="' + TEXTS.qOptD + '">' +
+    '</div>' +
+    '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">' +
+      '<label class="hint mb-0">' + TEXTS.qCorrect + '</label>' +
+      '<select name="' + prefix + '_q_correct">' +
+        '<option value="0">' + TEXTS.letters[0] + '</option><option value="1">' + TEXTS.letters[1] + '</option><option value="2">' + TEXTS.letters[2] + '</option><option value="3">' + TEXTS.letters[3] + '</option>' +
+      '</select>' +
+      '<input type="file" name="' + prefix + '_q_videos" accept="video/mp4,video/webm,video/quicktime" title="' + TEXTS.qVideoTitle + '">' +
+      '<input type="url" name="' + prefix + '_q_urls" placeholder="' + TEXTS.qUrlPh + '" style="flex:1; min-width:160px;">' +
+    '</div>';
+  return row;
+}
+function renumber(container) {
+  const rows = container.querySelectorAll('.q-row');
+  rows.forEach((row, idx) => {
+    const strong = row.querySelector('.flex-between strong');
+    if (strong) strong.textContent = TEXTS.qNumber.replace('{{ n }}', idx + 1);
+    const rm = row.querySelector('.remove-q-row');
+    if (rm) rm.classList.toggle('hide', rows.length === 1);
+  });
+}
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('add-q-row')) {
+    const prefix = e.target.dataset.prefix;
+    const container = document.querySelector('.qs-container[data-prefix="' + prefix + '"]');
+    if (!container) return;
+    const count = container.querySelectorAll('.q-row').length;
+    if (count >= MAX_QUESTIONS) { alert(TEXTS.alertMax.replace('{{ n }}', MAX_QUESTIONS)); return; }
+    container.appendChild(makeQ(prefix, count));
+    renumber(container);
+  } else if (e.target.classList.contains('remove-q-row')) {
+    const container = e.target.closest('.qs-container');
+    if (container.querySelectorAll('.q-row').length > 1) {
+      e.target.closest('.q-row').remove();
+      renumber(container);
+    }
+  }
+});
+document.querySelectorAll('.qs-container').forEach(renumber);
+</script>
+{% endblock %}

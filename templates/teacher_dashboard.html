@@ -1,0 +1,1005 @@
+{% extends "base.html" %}
+{% block extra_css %}<style>@media (max-width:640px){.tabs{overflow-x:auto; justify-content:flex-start;}.tab-btn{flex:0 0 auto;}}</style>{% endblock %}
+{% set OPT_LETTERS = L('assessment.option_letters') %}
+{% block content %}
+<div class="page-head flex-between">
+  <div>
+    <h1>{{ L('tdash.title').replace('{{ name }}', teacher['name']) }}</h1>
+    <p>
+      <span class="tag">{{ teacher['subject'] }}</span>
+      <span class="tag tag-neutral">{{ L('tdash.chat_count').replace('{{ n }}', chat_count|string) }}</span>
+    </p>
+  </div>
+  <div class="flex" style="gap:8px;">
+    <a class="btn btn-secondary" href="{{ url_for('teacher_question_bank') }}">🗂️ {{ L('qb.teacher_title') }}</a>
+    <a class="btn btn-secondary" href="{{ url_for('teacher_exam_bank') }}">📂 {{ L('bank.teacher_exam_title') }}</a>
+    <form action="{{ url_for('teacher_logout') }}" method="post">
+      <button class="btn btn-ghost" type="submit">{{ L('tdash.logout') }}</button>
+    </form>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon primary">📚</div>
+    <div class="stat-info">
+      <h3>{{ L('tdash.stat_lessons') }}</h3>
+      <div class="stat-value">{{ stats['lesson_count'] }}</div>
+      <div class="stat-sub">{{ L('tdash.stat_lessons_sub') }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon info">🛒</div>
+    <div class="stat-info">
+      <h3>{{ L('tdash.stat_purchases') }}</h3>
+      <div class="stat-value">{{ stats['purchase_count'] }}</div>
+      <div class="stat-sub">{{ L('tdash.stat_purchases_sub') }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon success">💰</div>
+    <div class="stat-info">
+      <h3>{{ L('tdash.stat_revenue') }}</h3>
+      <div class="stat-value">{{ stats['total_revenue']|int }} <span style="font-size:.8rem;">{{ L('teacher.egp') }}</span></div>
+      <div class="stat-sub">{{ L('tdash.stat_revenue_sub') }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon accent">⭐</div>
+    <div class="stat-info">
+      <h3>{{ L('tdash.stat_rating') }}</h3>
+      <div class="stat-value">{% if stats['avg_rating'] %}{{ stats['avg_rating']|round(1) }}{% else %}—{% endif %}</div>
+      <div class="stat-sub">{{ L('tdash.stat_rating_sub') }}</div>
+    </div>
+  </div>
+</div>
+
+{% if notifications %}
+<div class="card" style="margin-bottom:16px;">
+  <div class="flex-between mb-12" style="gap:10px; flex-wrap:wrap;">
+    <h3 class="mb-0">
+      🔔 {{ L('tdash.notif_title') }}
+      {% if unread_notifications %}<span class="tag" style="background:var(--danger,#c0392b); color:#fff;">{{ unread_notifications }}</span>{% endif %}
+    </h3>
+    <form method="post" action="{{ url_for('teacher_notifications_read', teacher_id=teacher['id']) }}">
+      <button class="btn btn-sm btn-ghost" type="submit">{{ L('tdash.notif_read_all') }}</button>
+    </form>
+  </div>
+  <div style="max-height:260px; overflow:auto;">
+  {% for n in notifications %}
+    <div class="flex-between" style="padding:8px 0; border-bottom:1px solid var(--border); gap:10px;">
+      <div style="min-width:0;">
+        <div style="font-weight:600;">{{ T(n['message']) }}</div>
+        <div class="muted small">{{ n['student_name'] }} · {{ n['created_at'][:16].replace('T', ' ') }}</div>
+      </div>
+      {% if not n['is_read'] %}<span class="tag">{{ L('tdash.notif_new') }}</span>{% endif %}
+    </div>
+  {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="overview">{{ L('tdash.tab_overview') }}</button>
+  <button class="tab-btn" data-tab="lessons">{{ L('tdash.tab_lessons').replace('{{ n }}', materials|length|string) }}</button>
+  <button class="tab-btn" data-tab="submissions">{{ L('tdash.tab_submissions') }}
+    {% set sub_count = homework_submissions|length + exam_submissions|length %}
+    {% if sub_count > 0 %} ({{ sub_count }}){% endif %}
+  </button>
+  <button class="tab-btn" data-tab="blocks">{{ L('tdash.tab_blocks') }}
+    {% if blocked_count > 0 %} ({{ blocked_count }}){% endif %}
+  </button>
+  <button class="tab-btn" data-tab="ai">{{ L('tdash.tab_ai') }}</button>
+  <button class="tab-btn" data-tab="profile">{{ L('tdash.tab_profile') }}</button>
+</div>
+
+<!-- ===== نظرة عامة ===== -->
+<div class="tab-panel active" id="tab-overview">
+  <div class="grid-2">
+    <div class="card">
+      <div class="flex-between mb-16">
+        <h3 class="mb-0">{{ L('tdash.views_title') }}</h3>
+      </div>
+      {% if lesson_view_counts %}
+        <canvas id="viewsChart" height="210"></canvas>
+      {% else %}
+        <div class="empty"><span class="empty-icon">👀</span><p>{{ L('tdash.views_empty') }}</p></div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h3>{{ L('tdash.recent_reviews_title') }}</h3>
+      {% for r in recent_reviews %}
+        <div style="padding:10px 0; border-bottom:1px solid var(--border);">
+          <div class="flex-between">
+            <strong style="font-size:.9rem;">{{ r['material_title'] }}</strong>
+            <span class="tag tag-accent">{{ r['rating'] }} ⭐</span>
+          </div>
+          {% if r['comment'] %}
+            <p class="muted small" style="margin:4px 0 0;">"{{ r['comment'] }}" — {{ r['student_name'] }}</p>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="empty"><span class="empty-icon">💭</span><p>{{ L('tdash.reviews_empty') }}</p></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>{{ L('tdash.earnings_title') }}</h3>
+    <p class="muted small">{{ L('tdash.earnings_note').replace('{{ pct }}', teacher['commission_percent']|int|string) }}</p>
+    <div class="stat-grid" style="margin-top:14px;">
+      <div class="stat-card">
+        <div class="stat-icon info">🛒</div>
+        <div class="stat-info"><h3>{{ L('tdash.earnings_total') }}</h3><div class="stat-value">{{ earnings|int }} <span style="font-size:.8rem;">{{ L('teacher.egp') }}</span></div><div class="stat-sub">{{ L('tdash.stat_revenue_sub') }}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon accent">🏢</div>
+        <div class="stat-info"><h3>{{ L('tdash.platform_cut') }}</h3><div class="stat-value">{{ platform_cut|int }} <span style="font-size:.8rem;">{{ L('teacher.egp') }}</span></div><div class="stat-sub">{{ teacher['commission_percent']|int }}%</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon success">👤</div>
+        <div class="stat-info"><h3>{{ L('tdash.my_share') }}</h3><div class="stat-value">{{ teacher_share|int }} <span style="font-size:.8rem;">{{ L('teacher.egp') }}</span></div><div class="stat-sub">{{ L('tdash.my_share_sub') }}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon primary">📤</div>
+        <div class="stat-info"><h3>{{ L('tdash.pending_title') }}</h3><div class="stat-value">{{ pending_earnings|int }} <span style="font-size:.8rem;">{{ L('teacher.egp') }}</span></div><div class="stat-sub">{{ L('tdash.pending_sub').replace('{{ amount }}', paid_total|int|string) }}</div></div>
+      </div>
+    </div>
+    {% if payout_history %}
+      <h4 style="margin:18px 0 8px; font-size:.9rem;">{{ L('tdash.payout_log') }}</h4>
+      {% for p in payout_history %}
+        <div style="padding:8px 0; border-bottom:1px solid var(--border);" class="flex-between">
+          <span class="muted small">{{ p['period'] }}</span>
+          <span class="tag tag-success">{{ L('tdash.egp_amt').replace('{{ n }}', p['amount']|int|string) }}</span>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>{{ L('tdash.docs_title') }}</h3>
+    {% for d in docs %}
+      <details class="collapsible">
+        <summary>{{ d['title'] }}
+          <span class="tag tag-info">{{ L('tdash.doc_exam') if d['kind'] == 'exam' else L('tdash.doc_summary') }}</span>
+        </summary>
+        <div class="body"><pre class="generated">{{ d['content'] }}</pre></div>
+      </details>
+    {% else %}
+      <div class="empty"><span class="empty-icon">🤖</span><p>{{ L('tdash.docs_empty') }}</p></div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ===== دروسي ===== -->
+<div class="tab-panel" id="tab-lessons">
+  <div class="grid-2">
+    <div class="card">
+      <h3>{{ L('tdash.add_lesson_title') }}</h3>
+      {% if offerings %}
+      <form method="post" action="{{ url_for('teacher_add_material', teacher_id=teacher['id']) }}" enctype="multipart/form-data">
+        <div class="field">
+          <label>{{ L('tdash.offering_label') }}</label>
+          <select name="offering_id" required>
+            {% for o in offerings %}
+              <option value="{{ o['id'] }}">{{ o['curriculum_name'] }} - {{ o['stage_name'] }} - {{ o['subject'] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>{{ L('tdash.stream_label') }}</label>
+          <select name="stream">
+            <option value="">{{ L('tdash.stream_all') }}</option>
+            <optgroup label="ثانوية عامة">
+              <option value="أدبي">أدبي</option>
+              <option value="علمي علوم">علمي علوم</option>
+              <option value="علمي رياضة">علمي رياضة</option>
+            </optgroup>
+            <optgroup label="بكالوريا">
+              <option value="الطب وعلوم الحياة">الطب وعلوم الحياة</option>
+              <option value="الهندسة وعلوم الحاسب">الهندسة وعلوم الحاسب</option>
+              <option value="الأعمال">الأعمال</option>
+              <option value="الآداب والفنون">الآداب والفنون</option>
+            </optgroup>
+          </select>
+          <div class="hint">{{ L('tdash.stream_hint') }}</div>
+        </div>
+        <div class="field">
+          <label>{{ L('tdash.kind_label') }}</label>
+          <select name="kind" id="lessonKind" onchange="document.getElementById('videoUrlField').style.display = this.value === 'فيديو' ? 'block' : 'none';">
+            <option value="نص">{{ L('tdash.kind_text_explain') }}</option>
+            <option value="فيديو">{{ L('kind.video') }}</option>
+            <option value="امتحان">{{ L('kind.exam') }}</option>
+            <option value="واجب">{{ L('kind.homework') }}</option>
+          </select>
+        </div>
+        <div id="videoUrlField" class="hide">
+          <div class="field">
+            <label>{{ L('tdash.access_days_label') }}</label>
+            <input type="number" name="access_days" min="3" max="14" step="1" placeholder="{{ L('tdash.access_days_ph') }}">
+            <div class="hint">{{ L('tdash.access_days_hint') }}</div>
+          </div>
+          <div class="field">
+            <label>{{ L('tdash.chapters_label') }}</label>
+            <div id="chaptersContainer">
+              <div class="chapter-block" style="padding:12px; margin-bottom:10px; border:1px solid var(--border); border-radius:var(--radius-sm);">
+                <div class="flex-between" style="margin-bottom:8px;">
+                  <input type="text" name="chapter_titles" placeholder="{{ L('tdash.chapter_name_ph') }}" style="flex:1;" class="chapter-title">
+                  <button type="button" class="btn btn-ghost btn-sm remove-chapter">{{ L('tdash.chapter_delete') }}</button>
+                </div>
+                <div class="chapter-videos">
+                  <div class="video-row" style="padding:10px; margin-bottom:8px; background:var(--bg); border-radius:var(--radius-sm);">
+                    <input type="hidden" name="video_chapter" value="0">
+                    <div class="field mb-0">
+                      <input type="text" name="video_titles" placeholder="{{ L('tdash.video_title_ph') }}" style="width:100%;">
+                    </div>
+                    <div class="field mb-0">
+                      <input type="text" name="video_descriptions" placeholder="{{ L('tdash.video_desc_ph') }}" style="width:100%;">
+                    </div>
+                    <div class="field mb-0">
+                      <input type="file" name="video_files" accept="video/mp4,video/webm,video/quicktime">
+                      <div class="hint">{{ L('tdash.video_file_hint_add') }}</div>
+                    </div>
+                    <div class="field mb-0">
+                      <input type="url" name="video_urls" placeholder="{{ L('tdash.video_url_ph_add') }}">
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-sm remove-video-row">{{ L('tdash.video_remove') }}</button>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm add-chapter-video">{{ L('tdash.chapter_add_video') }}</button>
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="addChapterBtn">{{ L('tdash.chapter_add_new').replace('{{ n }}', '10') }}</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>{{ L('tdash.lesson_title_label') }}</label>
+          <input type="text" name="title" required>
+        </div>
+        <div class="field">
+          <label>{{ L('tdash.lesson_content_label') }}</label>
+          <textarea name="content" rows="5" required></textarea>
+        </div>
+        <div class="field">
+          <label>{{ L('tdash.price_label') }}</label>
+          <input type="number" name="price" min="0" step="1" value="0">
+        </div>
+        <details class="collapsible" style="margin-top:12px;">
+          <summary>{{ L('tdash.exam_section_title') }}</summary>
+          <div class="body">
+            <p class="hint">{{ L('tdash.exam_section_hint') }}</p>
+            <div class="field">
+              <label>{{ L('tdash.exam_title_label') }}</label>
+              <input type="text" name="exam_title" placeholder="{{ L('tdash.exam_title_ph') }}">
+            </div>
+            <div class="qs-container" data-prefix="exam">
+              <div class="q-row" style="padding:12px; margin-bottom:10px; border:1px solid var(--border); border-radius:var(--radius-sm);">
+                <div class="flex-between" style="margin-bottom:8px;">
+                  <strong style="font-size:.85rem;">{{ L('tassess.q_number').replace('{{ n }}', '1') }}</strong>
+                  <button type="button" class="btn btn-ghost btn-sm remove-q-row hide">🗑</button>
+                </div>
+                <div class="field mb-0">
+                  <input type="text" name="exam_q_texts" placeholder="{{ L('tassess.q_text_ph') }}" style="width:100%;">
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0;">
+                  <input type="text" name="exam_q_a" placeholder="{{ L('tassess.q_opt_a') }}">
+                  <input type="text" name="exam_q_b" placeholder="{{ L('tassess.q_opt_b') }}">
+                  <input type="text" name="exam_q_c" placeholder="{{ L('tassess.q_opt_c') }}">
+                  <input type="text" name="exam_q_d" placeholder="{{ L('tassess.q_opt_d') }}">
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <label class="hint mb-0">{{ L('tassess.q_correct') }}</label>
+                  <select name="exam_q_correct">
+                    <option value="0">{{ OPT_LETTERS['أ'] }}</option>
+                    <option value="1">{{ OPT_LETTERS['ب'] }}</option>
+                    <option value="2">{{ OPT_LETTERS['ج'] }}</option>
+                    <option value="3">{{ OPT_LETTERS['د'] }}</option>
+                  </select>
+                  <input type="file" name="exam_q_videos" accept="video/mp4,video/webm,video/quicktime" title="{{ L('tassess.q_video_title') }}">
+                  <input type="url" name="exam_q_urls" placeholder="{{ L('tassess.q_url_ph') }}" style="flex:1; min-width:160px;">
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm add-q-row" data-prefix="exam">{{ L('tassess.add_q_btn') }}</button>
+          </div>
+        </details>
+        <details class="collapsible" style="margin-top:12px;">
+          <summary>{{ L('tdash.hw_section_title') }}</summary>
+          <div class="body">
+            <p class="hint">{{ L('tdash.hw_section_hint') }}</p>
+            <div class="field">
+              <label>{{ L('tdash.hw_title_label') }}</label>
+              <input type="text" name="hw_title" placeholder="{{ L('tdash.hw_title_ph') }}">
+            </div>
+            <div class="qs-container" data-prefix="hw">
+              <div class="q-row" style="padding:12px; margin-bottom:10px; border:1px solid var(--border); border-radius:var(--radius-sm);">
+                <div class="flex-between" style="margin-bottom:8px;">
+                  <strong style="font-size:.85rem;">{{ L('tassess.q_number').replace('{{ n }}', '1') }}</strong>
+                  <button type="button" class="btn btn-ghost btn-sm remove-q-row hide">🗑</button>
+                </div>
+                <div class="field mb-0">
+                  <input type="text" name="hw_q_texts" placeholder="{{ L('tassess.q_text_ph') }}" style="width:100%;">
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0;">
+                  <input type="text" name="hw_q_a" placeholder="{{ L('tassess.q_opt_a') }}">
+                  <input type="text" name="hw_q_b" placeholder="{{ L('tassess.q_opt_b') }}">
+                  <input type="text" name="hw_q_c" placeholder="{{ L('tassess.q_opt_c') }}">
+                  <input type="text" name="hw_q_d" placeholder="{{ L('tassess.q_opt_d') }}">
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <label class="hint mb-0">{{ L('tassess.q_correct') }}</label>
+                  <select name="hw_q_correct">
+                    <option value="0">{{ OPT_LETTERS['أ'] }}</option>
+                    <option value="1">{{ OPT_LETTERS['ب'] }}</option>
+                    <option value="2">{{ OPT_LETTERS['ج'] }}</option>
+                    <option value="3">{{ OPT_LETTERS['د'] }}</option>
+                  </select>
+                  <input type="file" name="hw_q_videos" accept="video/mp4,video/webm,video/quicktime" title="{{ L('tassess.q_video_title') }}">
+                  <input type="url" name="hw_q_urls" placeholder="{{ L('tassess.q_url_ph') }}" style="flex:1; min-width:160px;">
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm add-q-row" data-prefix="hw">{{ L('tassess.add_q_btn') }}</button>
+          </div>
+        </details>
+        <button class="btn btn-lg btn-block" type="submit">{{ L('tdash.save_lesson') }}</button>
+      </form>
+      {% else %}
+        <div class="empty">
+          <span class="empty-icon">⚠️</span>
+          <p>{{ L('tdash.no_offerings_text') }}</p>
+          <a class="btn btn-secondary" href="#" data-goto-tab="ai">{{ L('tdash.add_offering_btn') }}</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h3>{{ L('tdash.tab_lessons').replace('{{ n }}', materials|length|string) }}</h3>
+      {% for m in materials %}
+        <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+          <div class="flex-between">
+            <strong style="font-size:.92rem;">{{ m['title'] }}</strong>
+            {% if m['price'] > 0 %}<span class="tag tag-accent">{{ L('tdash.egp_amt').replace('{{ n }}', m['price']|int|string) }}</span>{% else %}<span class="tag tag-success">{{ L('teacher.free') }}</span>{% endif %}
+          </div>
+          <div class="flex mt-8" style="gap:6px; flex-wrap:wrap;">
+            {% if m['kind'] == 'فيديو' %}<span class="tag tag-info">{{ L('kind.video') }}</span>
+            {% elif m['kind'] == 'امتحان' %}<span class="tag tag-accent">{{ L('kind.exam') }}</span>
+            {% elif m['kind'] == 'واجب' %}<span class="tag">{{ L('kind.homework') }}</span>
+            {% else %}<span class="tag tag-neutral">{{ L('kind.text') }}</span>{% endif %}
+            <span class="muted small">{{ m['curriculum_name'] }} · {{ m['stage_name'] }} · {{ m['subject'] }}</span>
+          </div>
+          <div class="flex mt-8" style="gap:10px; flex-wrap:wrap; font-size:.8rem; color:var(--muted);">
+            <span>{{ L('tdash.purchase_x').replace('{{ n }}', m['purchase_count']|int|string) }}</span>
+            {% if m['video_count'] %}<span>{{ L('tdash.video_x').replace('{{ n }}', m['video_count']|int|string) }}</span>{% endif %}
+            {% if m['chapter_count'] %}<span>{{ L('tdash.chapter_x').replace('{{ n }}', m['chapter_count']|int|string) }}</span>{% endif %}
+            {% if m['assessment_count'] %}<span>{{ L('tdash.assessment_x').replace('{{ n }}', m['assessment_count']|int|string) }}</span>{% endif %}
+            {% if m['avg_rating'] %}
+              <span>⭐ {{ m['avg_rating']|round(1) }} ({{ m['review_count'] }})</span>
+            {% else %}
+              <span>{{ L('teacher.no_reviews') }}</span>
+            {% endif %}
+          </div>
+          <div class="flex mt-8" style="gap:8px; flex-wrap:wrap;">
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('teacher_assessments', teacher_id=teacher['id'], material_id=m['id']) }}">{{ L('tdash.manage_assessments') }}</a>
+          </div>
+          {% if m['kind'] == 'فيديو' %}
+          <details class="collapsible" style="margin-top:8px;">
+            <summary>{{ L('tdash.add_video_lesson') }}</summary>
+            <div class="body">
+              <form method="post" action="{{ url_for('teacher_add_lesson_videos', teacher_id=teacher['id'], material_id=m['id']) }}" enctype="multipart/form-data">
+                <div class="av-rows">
+                  <div class="av-row" style="padding:10px; margin-bottom:8px; background:var(--bg); border-radius:var(--radius-sm);">
+                    <div class="field mb-0">
+                      <label>{{ L('tdash.chapter_label') }}</label>
+                      <select name="video_chapter_ids" class="av-chapter-select">
+                        {% for ch in chapters if ch['material_id'] == m['id'] %}
+                          <option value="{{ ch['id'] }}">🗂 {{ ch['title'] }}</option>
+                        {% endfor %}
+                        <option value="0">{{ L('tdash.chapter_new') }}</option>
+                      </select>
+                    </div>
+                    <div class="field mb-0 av-new-title">
+                      <input type="text" name="new_chapter_titles" placeholder="{{ L('tdash.chapter_new_ph') }}">
+                      <div class="hint">{{ L('tdash.chapter_max_hint') }}</div>
+                    </div>
+                    <div class="field mb-0">
+                      <input type="text" name="video_titles" placeholder="{{ L('tdash.video_title_short') }}" required>
+                    </div>
+                    <div class="field mb-0">
+                      <input type="text" name="video_descriptions" placeholder="{{ L('tdash.video_desc_optional') }}" style="width:100%;">
+                    </div>
+                    <div class="field mb-0">
+                      <input type="file" name="video_files" accept="video/mp4,video/webm,video/quicktime">
+                      <div class="hint">{{ L('tdash.video_file_hint') }}</div>
+                    </div>
+                    <div class="field mb-0">
+                      <input type="url" name="video_urls" placeholder="{{ L('tdash.video_url_ph') }}">
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-sm av-remove hide">{{ L('tdash.remove') }}</button>
+                  </div>
+                </div>
+                <div class="flex" style="gap:8px; flex-wrap:wrap;">
+                  <button type="button" class="btn btn-secondary btn-sm av-add">{{ L('tdash.video_add_another') }}</button>
+                  <button class="btn btn-secondary btn-sm" type="submit">{{ L('tdash.save_video') }}</button>
+                </div>
+              </form>
+            </div>
+          </details>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="empty"><span class="empty-icon">📚</span><p>{{ L('tdash.lessons_empty') }}</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ===== التسليمات ===== -->
+<div class="tab-panel" id="tab-submissions">
+  <div class="grid-2">
+    <div class="card">
+      <h3>{{ L('tdash.hw_submissions_title').replace('{{ n }}', homework_submissions|length|string) }}</h3>
+      {% for s in homework_submissions %}
+        <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+          <div class="flex-between">
+            <strong style="font-size:.92rem;">{{ s['material_title'] }}</strong>
+            {% if s['graded_at'] %}
+              <span class="tag tag-success">{{ L('tdash.graded').replace('{{ grade }}', s['grade']|string) }}</span>
+            {% else %}
+              <span class="tag tag-accent">{{ L('tdash.not_graded') }}</span>
+            {% endif %}
+          </div>
+          <div class="flex mt-8">
+            <span class="avatar avatar-sm">{{ s['student_name'][0] if s['student_name'] else '؟' }}</span>
+            <span style="font-weight:700; font-size:.88rem;">{{ s['student_name'] }}</span>
+          </div>
+          <p class="lc-content" style="margin:8px 0; font-size:.86rem;">{{ s['answer_text'] }}</p>
+
+          {% if s['graded_at'] %}
+            {% if s['feedback'] %}<p class="muted small mb-0">{{ L('tdash.your_feedback').replace('{{ fb }}', s['feedback']) }}</p>{% endif %}
+          {% else %}
+            <form method="post" action="{{ url_for('teacher_grade_submission', teacher_id=teacher['id'], submission_id=s['id']) }}" class="flex" style="align-items:flex-end; gap:10px;">
+              <div class="field mb-0" style="flex:1;">
+                <label>{{ L('tdash.grade_label') }}</label>
+                <input type="text" name="grade" placeholder="{{ L('tdash.grade_ph') }}" required>
+              </div>
+              <div class="field mb-0" style="flex:1;">
+                <label>{{ L('tdash.feedback_optional') }}</label>
+                <input type="text" name="feedback">
+              </div>
+              <button class="btn btn-secondary btn-sm" type="submit">{{ L('tdash.save_grade') }}</button>
+            </form>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="empty"><span class="empty-icon">📔</span><p>{{ L('tdash.hw_submissions_empty') }}</p></div>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <h3>{{ L('tdash.exam_submissions_title').replace('{{ n }}', exam_submissions|length|string) }}</h3>
+      {% for s in exam_submissions %}
+        <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+          <div class="flex-between">
+            <strong style="font-size:.92rem;">{{ s['material_title'] }}</strong>
+            {% if s['graded_at'] %}
+              <span class="tag tag-success">{{ L('tdash.graded').replace('{{ grade }}', s['grade']|string) }}</span>
+            {% else %}
+              <span class="tag tag-accent">{{ L('tdash.not_graded') }}</span>
+            {% endif %}
+          </div>
+          <div class="flex mt-8">
+            <span class="avatar avatar-sm">{{ s['student_name'][0] if s['student_name'] else '؟' }}</span>
+            <span style="font-weight:700; font-size:.88rem;">{{ s['student_name'] }}</span>
+          </div>
+          <p class="lc-content" style="margin:8px 0; font-size:.86rem;">{{ s['answer_text'] }}</p>
+
+          {% if s['graded_at'] %}
+            {% if s['feedback'] %}<p class="muted small mb-0">{{ L('tdash.your_feedback').replace('{{ fb }}', s['feedback']) }}</p>{% endif %}
+          {% else %}
+            <form method="post" action="{{ url_for('teacher_grade_exam_submission', teacher_id=teacher['id'], submission_id=s['id']) }}" class="flex" style="align-items:flex-end; gap:10px;">
+              <div class="field mb-0" style="flex:1;">
+                <label>{{ L('tdash.grade_label') }}</label>
+                <input type="text" name="grade" placeholder="{{ L('tdash.grade_ph_exam') }}" required>
+              </div>
+              <div class="field mb-0" style="flex:1;">
+                <label>{{ L('tdash.feedback_optional') }}</label>
+                <input type="text" name="feedback">
+              </div>
+              <button class="btn btn-secondary btn-sm" type="submit">{{ L('tdash.save_grade') }}</button>
+            </form>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="empty"><span class="empty-icon">📝</span><p>{{ L('tdash.exam_submissions_empty') }}</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ===== حظر الطلاب ===== -->
+<div class="tab-panel" id="tab-blocks">
+  <div class="card" style="margin-bottom:16px; background:var(--danger-100);">
+    <h3 class="mb-0">{{ L('tdash.block_title') }}</h3>
+    <p class="muted small mb-0" style="margin-top:4px;">
+      {{ L('tdash.block_desc') }}
+    </p>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <h3 class="mb-12">{{ L('tdash.block_new_title') }}</h3>
+    <form method="post" action="{{ url_for('teacher_block_student', teacher_id=teacher['id']) }}" class="grid-2" style="align-items:end;">
+      <div class="field">
+        <label>{{ L('tdash.block_student_label') }}</label>
+        <select name="student_id">
+          <option value="">{{ L('tdash.choose') }}</option>
+          {% for s in my_students %}
+            <option value="{{ s['id'] }}">{{ s['name'] }} ({{ s['account_code'] }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>{{ L('tdash.block_code_label') }}</label>
+        <input type="text" name="student_code" placeholder="{{ L('tdash.block_code_ph') }}" dir="ltr">
+      </div>
+      <div class="field" style="grid-column:1/-1;">
+        <label>{{ L('tdash.block_reason_label') }}</label>
+        <input type="text" name="reason" maxlength="200" placeholder="{{ L('tdash.block_reason_ph') }}">
+      </div>
+      <div style="grid-column:1/-1;">
+        <button class="btn btn-danger" type="submit">{{ L('tdash.block_btn') }}</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>{{ L('admin.th_student') }}</th>
+          <th>{{ L('admin.th_code') }}</th>
+          <th>{{ L('tdash.th_phone') }}</th>
+          <th>{{ L('admin.blocks_th_reason') }}</th>
+          <th>{{ L('tdash.th_status') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in my_students %}
+          <tr>
+            <td>{{ s['name'] }}</td>
+            <td dir="ltr">{{ s['account_code'] }}</td>
+            <td dir="ltr">{{ s['student_phone'] or '—' }}</td>
+            <td style="max-width:220px; white-space:normal;">{{ s['block_reason'] or '—' }}</td>
+            <td>
+              {% if s['block_reason'] %}
+                <span class="tag tag-danger">{{ L('tdash.status_blocked') }}</span>
+              {% else %}
+                <span class="tag tag-success">{{ L('tdash.status_active') }}</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5"><div class="empty"><p>{{ L('tdash.students_empty') }}</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== مساعدي الذكي ===== -->
+<div class="tab-panel" id="tab-ai">
+  <div class="card" style="margin-bottom:16px; {% if ai_is_active %}background:var(--success-100);{% else %}background:var(--danger-100);{% endif %}">
+    <div class="flex-between" style="flex-wrap:wrap; gap:10px;">
+      <div>
+        <h3 class="mb-0">
+          {% if ai_is_active %}{{ L('tdash.ai_active_title') }}{% else %}{{ L('tdash.ai_inactive_title') }}{% endif %}
+          {% if ai_is_active %}<span class="tag tag-success">{{ L('tdash.ai_valid_until').replace('{{ date }}', ai_expires_at[:10]) }}</span>
+          {% elif ai_expires_at %}<span class="tag tag-danger">{{ L('tdash.ai_expired').replace('{{ date }}', ai_expires_at[:10]) }}</span>
+          {% else %}<span class="tag tag-neutral">{{ L('tdash.ai_not_active') }}</span>{% endif %}
+        </h3>
+        <p class="muted small mb-0" style="margin-top:4px;">
+          {% if ai_is_active %}
+            {{ L('tdash.ai_active_desc').replace('{{ days }}', ai_days_left|string) }}
+          {% else %}
+            {{ L('tdash.ai_inactive_desc').replace('{{ price }}', ai_cfg['price']|int|string).replace('{{ days }}', ai_cfg['days']|int|string) }}
+          {% endif %}
+        </p>
+      </div>
+      <div class="flex" style="gap:8px; flex-wrap:wrap;">
+        <form method="post" action="{{ url_for('teacher_ai_subscribe', teacher_id=teacher['id']) }}" class="flex" style="gap:8px; align-items:flex-end;">
+          <input type="hidden" name="mode" value="code">
+          <div class="field mb-0">
+            <label>{{ L('tdash.ai_code_label') }}</label>
+            <input type="text" name="code" placeholder="X4T7-K9PQ-2MNC" dir="ltr" style="font-family:monospace;">
+          </div>
+          <button class="btn btn-sm" type="submit">{{ L('tdash.ai_activate_code') }}</button>
+        </form>
+      </div>
+    </div>
+
+    <details class="collapsible" style="margin-top:12px; background:transparent;">
+      <summary>{{ L('tdash.ai_manual_title') }}</summary>
+      <div class="body">
+        <form method="post" action="{{ url_for('teacher_ai_subscribe', teacher_id=teacher['id']) }}" enctype="multipart/form-data" class="flex" style="gap:10px; flex-wrap:wrap;">
+          <input type="hidden" name="mode" value="manual">
+          <div class="field mb-0" style="min-width:140px;">
+            <label>{{ L('account.wallet_method') }}</label>
+            <select name="method">
+              <option value="فودافون كاش">فودافون كاش</option>
+              <option value="إنستاباي">إنستاباي</option>
+              <option value="تحويل بنكي">تحويل بنكي</option>
+            </select>
+          </div>
+          <div class="field mb-0" style="min-width:120px;">
+            <label>{{ L('tdash.amount_label') }}</label>
+            <input type="number" name="amount" min="1" step="1" required>
+          </div>
+          <div class="field mb-0" style="flex:1; min-width:200px;">
+            <label>{{ L('tdash.proof_label') }}</label>
+            <input type="file" name="proof_photo" accept="image/*">
+          </div>
+          <button class="btn btn-secondary btn-sm" type="submit" style="align-self:flex-end;">{{ L('tdash.ai_request_activate') }}</button>
+        </form>
+        <p class="muted small" style="margin-top:8px;">{{ L('tdash.ai_manual_hint').replace('{{ price }}', ai_cfg['price']|int|string).replace('{{ days }}', ai_cfg['days']|int|string) }}</p>
+      </div>
+    </details>
+
+    {% if ai_payment_history %}
+      <h4 style="margin:14px 0 6px; font-size:.85rem;">{{ L('tdash.ai_pay_log') }}</h4>
+      {% for p in ai_payment_history %}
+        <div class="flex-between" style="padding:6px 0; border-bottom:1px solid var(--border); font-size:.85rem;">
+          <span>
+            {% if p['method'] == 'كود شحن' %}🎫 {{ L('tdash.ai_code_entry').replace('{{ n }}', p['amount']|int|string) }}
+            {% else %}{{ p['method'] }} · {{ L('tdash.amount_egp').replace('{{ n }}', p['amount']|int|string) }}
+            {% endif %}
+          </span>
+          <span class="muted small">{{ L('tdash.ai_created_until').replace('{{ at }}', p['created_at'][:16]).replace('{{ date }}', p['expires_at'][:10]) }}</span>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>{{ L('tdash.offerings_title') }}</h3>
+      <div class="flex" style="gap:6px; flex-wrap:wrap;">
+        {% for o in offerings %}
+          <span class="tag">{{ o['curriculum_name'] }} - {{ o['stage_name'] }} - {{ o['subject'] }}</span>
+        {% else %}
+          <p class="muted mb-0">{{ L('tdash.offerings_empty') }}</p>
+        {% endfor %}
+      </div>
+
+      <details class="collapsible" style="margin-top:14px;">
+        <summary>{{ L('tdash.offering_add_title') }}</summary>
+        <div class="body">
+          <form method="post" action="{{ url_for('teacher_add_offering', teacher_id=teacher['id']) }}">
+            <div class="field">
+              <label>{{ L('tdash.system_label') }}</label>
+              <select name="curriculum_id" required>
+                {% for c in curricula %}<option value="{{ c['id'] }}">{{ c['name'] }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label>{{ L('browse.stage') }}</label>
+              <select name="stage_id" required>
+                {% for s in stages %}<option value="{{ s['id'] }}">{{ s['name'] }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label>{{ L('tdash.subject_label') }}</label>
+              <input type="text" name="subject" placeholder="{{ L('tdash.subject_ph') }}" required>
+            </div>
+            <button class="btn btn-secondary" type="submit">{{ L('tdash.add_btn') }}</button>
+          </form>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h3>{{ L('tdash.ai_gen_title') }}</h3>
+      <p class="muted small">{{ L('tdash.ai_gen_sub') }}</p>
+      {% if not ai_is_active %}
+        <div class="alert alert-error">{{ L('tdash.ai_gen_alert') }}</div>
+      {% endif %}
+      {% if materials %}
+      <form method="post" action="{{ url_for('teacher_generate', teacher_id=teacher['id']) }}">
+        <div class="field">
+          <label>{{ L('tdash.choose_lesson') }}</label>
+          <select name="material_id" required>
+            {% for m in materials %}<option value="{{ m['id'] }}">{{ m['title'] }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>{{ L('admin.th_type') }}</label>
+          <select name="kind">
+            <option value="exam">{{ L('tdash.gen_kind_exam') }}</option>
+            <option value="summary">{{ L('tdash.gen_kind_summary') }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>{{ L('tdash.extra_label') }}</label>
+          <input type="text" name="extra" placeholder="{{ L('tdash.extra_ph') }}">
+        </div>
+        <button class="btn btn-lg btn-block" type="submit" {% if not ai_is_active %}disabled{% endif %}>{{ L('tdash.generate_btn') }}</button>
+      </form>
+      {% else %}
+        <div class="empty"><span class="empty-icon">📚</span><p>{{ L('tdash.gen_no_materials') }}</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ===== حسابي ===== -->
+<div class="tab-panel" id="tab-profile">
+  <div class="card" style="max-width: 480px;">
+    <div class="flex" style="align-items:center; gap:18px; margin-bottom:18px;">
+      {% if teacher['photo'] %}
+        <img class="avatar avatar-lg" src="/uploads/{{ teacher['photo'] }}" alt="{{ L('account.photo_alt').replace('{{ name }}', teacher['name']) }}">
+      {% else %}
+        <span class="avatar avatar-lg">🧑‍🏫</span>
+      {% endif %}
+      <div>
+        <h3 class="mb-0">{{ teacher['name'] }}</h3>
+        <p class="muted small mb-0">{{ teacher['subject'] }}{% if teacher['workplace'] %} · {{ teacher['workplace'] }}{% endif %}</p>
+        <p class="muted small mb-0">{{ L('account.code').replace('{{ code }}', teacher['account_code']) }}</p>
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('teacher_update_photo', teacher_id=teacher['id']) }}" enctype="multipart/form-data">
+      <div class="field">
+        <label>{{ L('account.photo_label') }}</label>
+        <input type="file" name="photo" accept="image/*">
+        <div class="hint">{{ L('tdash.photo_hint') }}</div>
+      </div>
+      <button class="btn btn-secondary" type="submit">
+        {% if teacher['photo'] %}{{ L('account.photo_change') }}{% else %}{{ L('account.photo_add') }}{% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+
+{% if lesson_view_counts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+{% endif %}
+<script>
+const TEXTS = {
+  chapterTitlePh: {{ L('tdash.chapter_name_ph') | tojson }},
+  chapterDelete: {{ L('tdash.chapter_delete') | tojson }},
+  chapterAddVideo: {{ L('tdash.chapter_add_video') | tojson }},
+  chapterAddNew: {{ L('tdash.chapter_add_new') | tojson }},
+  chapterMaxAlert: {{ L('tdash.chapter_max_alert') | tojson }},
+  videoTitlePh: {{ L('tdash.video_title_short') | tojson }},
+  videoDescPh: {{ L('tdash.video_desc_optional') | tojson }},
+  videoFileHint: {{ L('tdash.video_file_hint') | tojson }},
+  videoUrlPh: {{ L('tdash.video_url_ph_js') | tojson }},
+  videoRemove: {{ L('tdash.video_remove') | tojson }},
+  questionNumber: {{ L('tassess.q_number') | tojson }},
+  qTextPh: {{ L('tassess.q_text_ph') | tojson }},
+  qOptA: {{ L('tassess.q_opt_a') | tojson }},
+  qOptB: {{ L('tassess.q_opt_b') | tojson }},
+  qOptC: {{ L('tassess.q_opt_c') | tojson }},
+  qOptD: {{ L('tassess.q_opt_d') | tojson }},
+  qCorrect: {{ L('tassess.q_correct') | tojson }},
+  letters: {{ L('tassess.letters') | tojson }},
+  qVideoTitle: {{ L('tassess.q_video_title') | tojson }},
+  qUrlPh: {{ L('tassess.q_url_ph') | tojson }},
+  alertMax: {{ L('tassess.alert_max') | tojson }},
+  addQBtn: {{ L('tassess.add_q_btn') | tojson }},
+  viewsLabel: {{ L('tdash.views_label') | tojson }}
+};
+// التبويبات
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'overview' && window.viewsChart) window.viewsChart.resize?.();
+  });
+});
+// رابط "ضيف صف/نظام" من تبويب الدروس الفاضي
+document.querySelectorAll('[data-goto-tab]').forEach(el => {
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelector('.tab-btn[data-tab="ai"]').classList.add('active');
+    document.getElementById('tab-ai').classList.add('active');
+  });
+});
+
+// شبترات وفيديوهات الدرس في فورم إضافة الدرس
+const chaptersContainer = document.getElementById('chaptersContainer');
+if (chaptersContainer) {
+  const MAX_CHAPTERS = 10;
+  const chapterStyle = 'padding:12px; margin-bottom:10px; border:1px solid var(--border); border-radius:var(--radius-sm);';
+  const videoRowStyle = 'padding:10px; margin-bottom:8px; background:var(--bg); border-radius:var(--radius-sm);';
+
+  function makeVideoRow(chapterIdx) {
+    const row = document.createElement('div');
+    row.className = 'video-row';
+    row.style.cssText = videoRowStyle;
+    row.innerHTML =
+      '<input type="hidden" name="video_chapter" value="' + chapterIdx + '">' +
+      '<div class="field mb-0"><input type="text" name="video_titles" placeholder="' + TEXTS.videoTitlePh + '" style="width:100%;"></div>' +
+      '<div class="field mb-0"><input type="text" name="video_descriptions" placeholder="' + TEXTS.videoDescPh + '" style="width:100%;"></div>' +
+      '<div class="field mb-0"><input type="file" name="video_files" accept="video/mp4,video/webm,video/quicktime">' +
+      '<div class="hint">' + TEXTS.videoFileHint + '</div></div>' +
+      '<div class="field mb-0"><input type="url" name="video_urls" placeholder="' + TEXTS.videoUrlPh + '"></div>' +
+      '<button type="button" class="btn btn-ghost btn-sm remove-video-row">' + TEXTS.videoRemove + '</button>';
+    return row;
+  }
+
+  function makeChapterBlock(idx) {
+    const block = document.createElement('div');
+    block.className = 'chapter-block';
+    block.style.cssText = chapterStyle;
+    block.innerHTML =
+      '<div class="flex-between" style="margin-bottom:8px;">' +
+        '<input type="text" name="chapter_titles" placeholder="' + TEXTS.chapterTitlePh + '" style="flex:1;" class="chapter-title">' +
+        '<button type="button" class="btn btn-ghost btn-sm remove-chapter">' + TEXTS.chapterDelete + '</button>' +
+      '</div>' +
+      '<div class="chapter-videos"></div>' +
+      '<button type="button" class="btn btn-secondary btn-sm add-chapter-video">' + TEXTS.chapterAddVideo + '</button>';
+    block.querySelector('.chapter-videos').appendChild(makeVideoRow(idx));
+    return block;
+  }
+
+  function reindex() {
+    const blocks = chaptersContainer.querySelectorAll('.chapter-block');
+    const addBtn = document.getElementById('addChapterBtn');
+    blocks.forEach((block, idx) => {
+      block.dataset.index = idx;
+      block.querySelectorAll('.video-row').forEach((row) => {
+        row.querySelector('input[name="video_chapter"]').value = idx;
+      });
+      block.querySelector('.remove-chapter').classList.toggle('hide', blocks.length === 1);
+    });
+    addBtn.textContent = TEXTS.chapterAddNew.replace('{{ n }}', MAX_CHAPTERS);
+    addBtn.disabled = blocks.length >= MAX_CHAPTERS;
+  }
+
+  document.getElementById('addChapterBtn').addEventListener('click', () => {
+    const count = chaptersContainer.querySelectorAll('.chapter-block').length;
+    if (count >= MAX_CHAPTERS) {
+      alert(TEXTS.chapterMaxAlert.replace('{{ n }}', MAX_CHAPTERS));
+      return;
+    }
+    chaptersContainer.appendChild(makeChapterBlock(count));
+    reindex();
+  });
+
+  chaptersContainer.addEventListener('click', (e) => {
+    if (e.target.classList.contains('add-chapter-video')) {
+      const block = e.target.closest('.chapter-block');
+      block.querySelector('.chapter-videos').appendChild(makeVideoRow(parseInt(block.dataset.index, 10)));
+      reindex();
+    } else if (e.target.classList.contains('remove-video-row')) {
+      e.target.closest('.video-row').remove();
+      reindex();
+    } else if (e.target.classList.contains('remove-chapter')) {
+      const block = e.target.closest('.chapter-block');
+      if (chaptersContainer.querySelectorAll('.chapter-block').length > 1) {
+        block.remove();
+        reindex();
+      }
+    }
+  });
+
+  reindex();
+}
+
+// أسئلة الامتحان/الواجب في فورم إضافة الدرس (إضافة/إزالة صفوف حتى 56)
+const MAX_QUESTIONS = 56;
+function makeQuestionRow(prefix, index) {
+  const row = document.createElement('div');
+  row.className = 'q-row';
+  row.style.cssText = 'padding:12px; margin-bottom:10px; border:1px solid var(--border); border-radius:var(--radius-sm);';
+  row.innerHTML =
+    '<div class="flex-between" style="margin-bottom:8px;">' +
+      '<strong style="font-size:.85rem;">' + TEXTS.questionNumber.replace('{{ n }}', index + 1) + '</strong>' +
+      '<button type="button" class="btn btn-ghost btn-sm remove-q-row">🗑</button>' +
+    '</div>' +
+    '<div class="field mb-0"><input type="text" name="' + prefix + '_q_texts" placeholder="' + TEXTS.qTextPh + '" style="width:100%;"></div>' +
+    '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0;">' +
+      '<input type="text" name="' + prefix + '_q_a" placeholder="' + TEXTS.qOptA + '">' +
+      '<input type="text" name="' + prefix + '_q_b" placeholder="' + TEXTS.qOptB + '">' +
+      '<input type="text" name="' + prefix + '_q_c" placeholder="' + TEXTS.qOptC + '">' +
+      '<input type="text" name="' + prefix + '_q_d" placeholder="' + TEXTS.qOptD + '">' +
+    '</div>' +
+    '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">' +
+      '<label class="hint mb-0">' + TEXTS.qCorrect + '</label>' +
+      '<select name="' + prefix + '_q_correct">' +
+        '<option value="0">' + TEXTS.letters[0] + '</option><option value="1">' + TEXTS.letters[1] + '</option><option value="2">' + TEXTS.letters[2] + '</option><option value="3">' + TEXTS.letters[3] + '</option>' +
+      '</select>' +
+      '<input type="file" name="' + prefix + '_q_videos" accept="video/mp4,video/webm,video/quicktime" title="' + TEXTS.qVideoTitle + '">' +
+      '<input type="url" name="' + prefix + '_q_urls" placeholder="' + TEXTS.qUrlPh + '" style="flex:1; min-width:160px;">' +
+    '</div>';
+  return row;
+}
+function renumberQuestions(container) {
+  const rows = container.querySelectorAll('.q-row');
+  rows.forEach((row, idx) => {
+    const strong = row.querySelector('.flex-between strong');
+    if (strong) strong.textContent = TEXTS.questionNumber.replace('{{ n }}', idx + 1);
+    const rm = row.querySelector('.remove-q-row');
+    if (rm) rm.classList.toggle('hide', rows.length === 1);
+  });
+  return rows.length;
+}
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('add-q-row')) {
+    const prefix = e.target.dataset.prefix;
+    const container = document.querySelector('.qs-container[data-prefix="' + prefix + '"]');
+    if (!container) return;
+    const count = container.querySelectorAll('.q-row').length;
+    if (count >= MAX_QUESTIONS) {
+      alert(TEXTS.alertMax.replace('{{ n }}', MAX_QUESTIONS));
+      return;
+    }
+    container.appendChild(makeQuestionRow(prefix, count));
+    renumberQuestions(container);
+    e.target.textContent = TEXTS.addQBtn.replace('{{ n }}', MAX_QUESTIONS);
+  } else if (e.target.classList.contains('remove-q-row')) {
+    const container = e.target.closest('.qs-container');
+    const rows = container.querySelectorAll('.q-row');
+    if (rows.length > 1) {
+      e.target.closest('.q-row').remove();
+      renumberQuestions(container);
+    }
+  }
+});
+document.querySelectorAll('.qs-container').forEach((container) => {
+  const btn = container.parentElement.querySelector('.add-q-row');
+  if (btn) btn.textContent = TEXTS.addQBtn.replace('{{ n }}', MAX_QUESTIONS);
+  renumberQuestions(container);
+});
+
+// إضافة فيديو لدرس موجود — إضافة/إزالة صفوف واختيار شبتر
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('av-add')) {
+    const detailsEl = e.target.closest('details');
+    const container = detailsEl.querySelector('.av-rows');
+    const proto = container.querySelector('.av-row');
+    const clone = proto.cloneNode(true);
+    clone.querySelectorAll('input').forEach((inp) => {
+      if (inp.type !== 'button' && inp.type !== 'hidden') inp.value = '';
+    });
+    clone.querySelector('.av-remove').classList.remove('hide');
+    const select = clone.querySelector('.av-chapter-select');
+    clone.querySelector('.av-new-title').style.display = select.value === '0' ? 'block' : 'none';
+    container.appendChild(clone);
+  } else if (e.target.classList.contains('av-remove')) {
+    const detailsEl = e.target.closest('details');
+    const rows = detailsEl.querySelectorAll('.av-row');
+    if (rows.length > 1) e.target.closest('.av-row').remove();
+  }
+});
+document.addEventListener('change', (e) => {
+  if (e.target.classList.contains('av-chapter-select')) {
+    const row = e.target.closest('.av-row');
+    row.querySelector('.av-new-title').style.display = e.target.value === '0' ? 'block' : 'none';
+  }
+});
+{% if lesson_view_counts %}
+new Chart(document.getElementById('viewsChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ lesson_view_counts | map(attribute='title') | list | tojson }},
+    datasets: [{
+      label: TEXTS.viewsLabel,
+      data: {{ lesson_view_counts | map(attribute='view_count') | list | tojson }},
+      backgroundColor: '#7C3AED',
+      borderRadius: 8,
+      maxBarThickness: 46,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+  }
+});
+{% endif %}
+</script>
+{% endblock %}

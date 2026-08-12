@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head flex-between">
+  <div>
+    <h1>{{ L('bank.title') }}</h1>
+    <p>{{ L('bank.subtitle') }}</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('student_question_bank') }}">🗂️ {{ L('nav.question_bank') }}</a>
+</div>
+
+<div class="card" style="margin-bottom:18px;">
+  <form method="get" class="flex" style="gap:14px; align-items:flex-end; flex-wrap:wrap;">
+    <div class="field mb-0" style="flex:1; min-width:160px;">
+      <label>{{ L('bank.filter_subject') }}</label>
+      <select name="subject">
+        <option value="">{{ L('browse.all_stages') }}</option>
+        {% for s in subjects %}
+          <option value="{{ s['subject'] }}" {% if q_subject == s['subject'] %}selected{% endif %}>{{ s['subject'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0" style="flex:1; min-width:160px;">
+      <label>{{ L('bank.filter_stream') }}</label>
+      <select name="stream_id">
+        <option value="">{{ L('bank.all_streams') }}</option>
+        {% for s in streams %}
+          <option value="{{ s['id'] }}" {% if q_stream == s['id'] %}selected{% endif %}>{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0" style="flex:1; min-width:160px;">
+      <label>{{ L('bank.filter_curriculum') }}</label>
+      <select name="curriculum_id">
+        <option value="">{{ L('bank.all_curricula') }}</option>
+        {% for c in curricula %}
+          <option value="{{ c['id'] }}" {% if q_curriculum == c['id'] %}selected{% endif %}>{{ c['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field mb-0" style="flex:1; min-width:160px;">
+      <label>{{ L('bank.filter_stage') }}</label>
+      <select name="stage_id">
+        <option value="">{{ L('bank.all_stages') }}</option>
+        {% for s in stages %}
+          <option value="{{ s['id'] }}" {% if q_stage == s['id'] %}selected{% endif %}>{{ s['name'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn" type="submit">{{ L('browse.filter') }}</button>
+    {% if q_subject or q_stage or q_stream or q_curriculum %}
+      <a class="btn btn-ghost" href="{{ url_for('student_exam_bank') }}">{{ L('bank.clear') }}</a>
+    {% endif %}
+  </form>
+</div>
+
+{% if exams %}
+<div class="grid-3">
+  {% for e in exams %}
+  <div class="card" style="display:flex; flex-direction:column;">
+    <div class="flex-between mb-8" style="gap:8px;">
+      {% if e['subject'] %}<span class="tag tag-info">{{ e['subject'] }}</span>{% endif %}
+      {% if e['stream_name'] %}<span class="tag tag-accent">{{ e['stream_name'] }}</span>{% endif %}
+      {% if e['curriculum_name'] %}<span class="tag tag-neutral">{{ e['curriculum_name'] }}</span>{% endif %}
+      {% if e['stage_name'] %}<span class="tag tag-neutral">{{ e['stage_name'] }}</span>{% endif %}
+    </div>
+    <h3 style="margin:.2rem 0 .4rem;">{{ e['title'] }}</h3>
+    {% if e['description'] %}<p class="muted small mb-8">{{ e['description'] }}</p>{% endif %}
+    <div class="flex-between mb-12" style="gap:8px; flex-wrap:wrap;">
+      <div class="muted small">
+        {% if e['year'] %}{{ e['year'] }}{% if e['term'] %} · {{ L('bank.term').replace('{{ n }}', e['term']|string) }}{% endif %}{% endif %}
+      </div>
+      <span class="muted small">⬇ {{ e['downloads'] }} {{ L('bank.downloads') }}</span>
+    </div>
+    {% if e['file_path'] %}
+      <a class="btn btn-block" style="margin-top:auto;" href="{{ url_for('student_exam_bank_download', exam_id=e['id']) }}">📥 {{ L('bank.download') }}</a>
+    {% else %}
+      <button class="btn btn-block" disabled style="margin-top:auto;">{{ L('bank.no_file') }}</button>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">
+  <div class="empty"><span class="empty-icon">📂</span><p>{{ L('bank.empty') }}</p></div>
+</div>
+{% endif %}
+{% endblock %}

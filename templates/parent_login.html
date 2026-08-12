@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="auth-shell">
+  <div class="auth-split">
+
+    <div class="auth-panel">
+      <span class="ap-badge">👨‍👩‍👧 {{ L('parent.login_title') }}</span>
+      <h2>{{ L('parent.panel_title') }}</h2>
+      <p class="ap-sub">{{ L('parent.panel_sub') }}</p>
+
+      <ul class="ap-points">
+        <li>
+          <span class="ap-ic">🕐</span>
+          <div><strong>{{ L('parent.point1_t') }}</strong><span>{{ L('parent.point1_d') }}</span></div>
+        </li>
+        <li>
+          <span class="ap-ic">📝</span>
+          <div><strong>{{ L('parent.point2_t') }}</strong><span>{{ L('parent.point2_d') }}</span></div>
+        </li>
+        <li>
+          <span class="ap-ic">💳</span>
+          <div><strong>{{ L('parent.point3_t') }}</strong><span>{{ L('parent.point3_d') }}</span></div>
+        </li>
+        <li>
+          <span class="ap-ic">📲</span>
+          <div><strong>{{ L('parent.point4_t') }}</strong><span>{{ L('parent.point4_d') }}</span></div>
+        </li>
+      </ul>
+
+      <a class="ap-back" href="{{ url_for('home') }}">{{ L('parent.back_home') }}</a>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-icon">👨‍👩‍👧</div>
+      <h1>{{ L('parent.login_title') }}</h1>
+      <p class="auth-sub">{{ L('parent.login_sub') }}</p>
+
+      {% if error %}
+        <div class="alert alert-error">⚠️ {{ T(error) }}</div>
+      {% endif %}
+
+      <form method="post">
+        <div class="field">
+          <label>{{ L('parent.account_code') }}</label>
+          <input type="text" name="account_code" placeholder="STU-0000" required autofocus dir="ltr">
+        </div>
+        <div class="field">
+          <label>{{ L('parent.phone') }}</label>
+          <input type="tel" name="parent_phone" placeholder="{{ L('parent.phone_placeholder') }}" required dir="ltr">
+        </div>
+
+        <div class="auth-need">
+          <strong>ℹ️ {{ L('parent.need_code') }}</strong>
+          <ul>
+            <li>{{ L('parent.need1') }}</li>
+            <li>{{ L('parent.need2') }}</li>
+          </ul>
+        </div>
+
+        <button class="btn btn-lg btn-block" type="submit">{{ L('parent.login_btn') }}</button>
+      </form>
+
+      <p class="auth-alt">{{ L('parent.as_student') }} <a href="{{ url_for('login') }}">{{ L('action.login') }}</a></p>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="auth-shell">
+  <div class="card auth-card" style="text-align:center;">
+    <div style="font-size:3rem; line-height:1;">🚫</div>
+    <h1 class="mb-8">{{ L('blocked.title') }} {{ teacher['name'] if teacher else L('blocked.teacher_default') }}</h1>
+    <p class="muted" style="line-height:2;">
+      {{ L('blocked.desc1') }}
+      <br>
+      {{ L('blocked.desc2') }}
+    </p>
+    {% if block and block['reason'] %}
+      <div class="card" style="margin-top:12px; background:var(--bg);">
+        <span class="tag tag-danger">{{ L('blocked.reason_tag') }}</span>
+        <p class="small mb-0 mt-8" style="color:var(--text-soft);">{{ block['reason'] }}</p>
+      </div>
+    {% endif %}
+    <div class="flex" style="justify-content:center; gap:10px; margin-top:20px;">
+      <a class="btn btn-lg" href="{{ url_for('student_support', kind='inability') }}">{{ L('blocked.contact_support') }}</a>
+      <a class="btn btn-ghost" href="{{ url_for('student_browse') }}">{{ L('blocked.browse_others') }}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
